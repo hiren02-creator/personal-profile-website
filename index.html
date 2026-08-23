@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="view-transition" content="same-origin">
+    <title>Personal Profile | AI Developer &amp; Investment</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js" defer></script>
+</head>
+<body>
+    <div class="page-shell">
+        <div class="page-container">
+            <header class="site-header">
+                <a class="brand-link" href="#home">Personal Profile Website</a>
+                <button
+                    class="menu-toggle"
+                    type="button"
+                    aria-expanded="false"
+                    aria-controls="primary-navigation"
+                    aria-label="Open navigation menu"
+                >
+                    <iconify-icon icon="lucide:menu" aria-hidden="true"></iconify-icon>
+                    <span>Menu</span>
+                </button>
+                <nav id="primary-navigation" class="site-navigation" aria-label="Primary navigation">
+                    <ul class="navigation-list">
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="#skills">Skills</a></li>
+                        <li><a href="#projects">Projects</a></li>
+                        <li><a href="#investment">Investment</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                    </ul>
+                </nav>
+            </header>
+
+            <main>
+                <section id="home" class="hero reveal">
+                    <div class="hero-copy">
+                        <p class="eyebrow">Hello, I'm</p>
+                        <h1 class="hero-title">Hiren Visodiya.</h1>
+                        <div class="hero-intro">
+                            <h2>AI Developer | Investment Enthusiast</h2>
+                            <p>I build intelligent applications and explore practical ideas in technology, personal finance, and long-term investing.</p>
+                            <div class="button-row">
+                                <a class="button button-primary" href="#projects">
+                                    View My Projects
+                                    <iconify-icon icon="lucide:arrow-down-right" aria-hidden="true"></iconify-icon>
+                                </a>
+                                <a class="button button-secondary" href="#contact">
+                                    Contact Me
+                                    <iconify-icon icon="lucide:mail" aria-hidden="true"></iconify-icon>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="portrait-wrap" aria-label="Profile portrait">
+                        <div class="portrait-shape" aria-hidden="true"></div>
+                        <svg class="circle-text" viewBox="0 0 320 320" aria-hidden="true">
+                            <defs>
+                                <path id="profile-text-path" d="M 160,20 A 140,140 0 1,1 159.9,20"></path>
+                            </defs>
+                            <text>
+                                <textPath href="#profile-text-path" startOffset="50%" text-anchor="middle">
+                                    AI DEVELOPER • INVESTMENT • TECHNOLOGY • PERSONAL FINANCE •
+                                </textPath>
+                            </text>
+                        </svg>
+                        <img class="profile-image" src="image/profile.jpg" alt="Profile photo of Hiren Visodiya">
+                    </div>
+                </section>
+
+                <section id="about" class="split-section reveal">
+                    <h2 class="section-title">About Me</h2>
+                    <p class="body-copy">I am interested in artificial intelligence, software development, technology, and investment research. I enjoy building useful digital projects and learning how technology and financial analysis can work together.</p>
+                </section>
+
+                <section id="skills" class="split-section reveal">
+                    <h2 class="section-title">AI Developer Skills</h2>
+                    <ul class="chip-list" aria-label="AI Developer skills">
+                        <li>Python</li>
+                        <li>JavaScript</li>
+                        <li>Node.js</li>
+                        <li>Express.js</li>
+                        <li>HTML</li>
+                        <li>Git</li>
+                        <li>GitHub</li>
+                        <li>Supabase</li>
+                        <li>PostgreSQL</li>
+                        <li>REST APIs</li>
+                        <li>AI APIs</li>
+                        <li>Prompt Engineering</li>
+                    </ul>
+                </section>
+
+                <section id="investment" class="split-section reveal">
+                    <h2 class="section-title">Investment Skills</h2>
+                    <ul class="chip-list" aria-label="Investment skills">
+                        <li>Mutual Funds</li>
+                        <li>Asset Allocation</li>
+                        <li>Budget Planning</li>
+                        <li>Stock Market Research</li>
+                        <li>Risk Management</li>
+                    </ul>
+                </section>
+
+                <section id="projects" class="projects-section reveal">
+                    <h2 class="section-title">Featured Projects</h2>
+                    <div class="project-grid">
+                        <article class="project-card">
+                            <div class="project-meta">
+                                <span>01</span>
+                                <iconify-icon icon="lucide:code-2" aria-hidden="true"></iconify-icon>
+                            </div>
+                            <h3>Personal Profile Website</h3>
+                            <p>A professional website showcasing my AI Developer and Investment skills.</p>
+                        </article>
+                        <article class="project-card">
+                            <div class="project-meta">
+                                <span>02</span>
+                                <iconify-icon icon="lucide:chart-no-axes-combined" aria-hidden="true"></iconify-icon>
+                            </div>
+                            <h3>Stock Portfolio Tracker</h3>
+                            <p>A project for tracking investments and portfolio information.</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section id="insights" class="split-section insights-section reveal">
+                    <h2 class="section-title">Investment Insights</h2>
+                    <div>
+                        <p class="body-copy">I am interested in personal finance, investment research, mutual funds, asset allocation, budgeting, and long-term wealth planning.</p>
+                        <ul class="chip-list insight-topics" aria-label="Investment insight topics">
+                            <li>Mutual Funds</li>
+                            <li>Asset Allocation</li>
+                            <li>Budget Planning</li>
+                            <li>Stock Market Research</li>
+                            <li>Risk Management</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <section id="contact" class="contact-section reveal">
+                    <div class="contact-layout">
+                        <div>
+                            <h2 class="section-title">Contact Me</h2>
+                            <p class="body-copy">Feel free to connect with me for AI development, technology, and investment-related discussions.</p>
+                        </div>
+                        <ul class="contact-links">
+                            <li>
+                                <a class="button button-primary" href="mailto:hirenwork62@gmail.com">
+                                    <iconify-icon icon="lucide:mail" aria-hidden="true"></iconify-icon>
+                                    Email
+                                </a>
+                            </li>
+                            <li>
+                                <a class="button button-secondary" href="https://github.com/hiren02-creator" target="_blank" rel="noopener noreferrer">
+                                    <iconify-icon icon="lucide:github" aria-hidden="true"></iconify-icon>
+                                    GitHub
+                                </a>
+                            </li>
+                            <li>
+                                <a class="button button-secondary" href="https://www.linkedin.com/in/hiren-visodiya-416141208/" target="_blank" rel="noopener noreferrer">
+                                    <iconify-icon icon="lucide:linkedin" aria-hidden="true"></iconify-icon>
+                                    LinkedIn
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </section>
+            </main>
+
+            <footer class="site-footer">
+                <p>&copy; 2026 HIREN VISODIYA. All rights reserved.</p>
+                <p>AI Developer | Investment Enthusiast</p>
+            </footer>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

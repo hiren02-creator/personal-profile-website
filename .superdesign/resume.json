@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "targets": {
+    "hero:#home": {
+      "targetKind": "existing-ui",
+      "projectId": "e8fb8bfc-5e18-47c8-a0c8-5c5d3820b992",
+      "baselineDraftId": "9d9a7b15-5dbd-4143-904a-4b812bdf9d4b",
+      "activeDraftId": "9d9a7b15-5dbd-4143-904a-4b812bdf9d4b",
+      "designSystemPath": ".superdesign/design-system.md",
+      "referenceIds": [
+        "0d20d1d0-27c4-40f8-b368-ba381880cb33"
+      ],
+      "contextFiles": [
+        ".superdesign/design-system.md",
+        "frontend/src/App.jsx",
+        "frontend/src/App.css",
+        "frontend/src/index.css"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "025758B2029A4FC948F570E91DE291144233ABF1D6E26E798475769DD34CBF06",
+        "frontend/src/App.jsx": "0CE283189315A820F19DC9328BE1E4C71E86722299C783922224AD71EBBFF9E8",
+        "frontend/src/App.css": "529925F110C8B384A4ED8117EA5D042CF23487B64D730E2D188CA6ED1A505812",
+        "frontend/src/index.css": "FDA85FFFE7F006D822FB9AB4E774B9E2B8FADFFA73A3806B038DC0B8456CBBEB"
+      },
+      "components": [],
+      "drafts": {
+        "9d9a7b15-5dbd-4143-904a-4b812bdf9d4b": {
+          "title": "Hiren Visodiya - AI Developer | Investment Enthusiast",
+          "visualDirection": "bright minimal vertical Hero with upper-left name, centered rotating portrait, and restrained actions",
+          "currentVersion": 2
+        }
+      },
+      "updatedAt": "2026-08-23T15:36:17.2643060Z"
+    }
+  }
+}
