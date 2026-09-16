@@ -4,6 +4,9 @@
   "description": "",
   "main": "script.js",
   "scripts": {
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint",
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

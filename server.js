@@ -3,11 +3,12 @@ const path = require("path");
 
 const app = express();
 const port = 3000;
+const frontendDist = path.join(__dirname, "frontend", "dist");
 
 app.use(express.json());
 
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "index.html"));
+    res.sendFile(path.join(frontendDist, "index.html"));
 });
 
 app.get("/api/profile", (req, res) => {
@@ -94,7 +95,7 @@ app.post("/api/contact", (req, res) => {
     });
 });
 
-app.use(express.static(__dirname));
+app.use(express.static(frontendDist));
 
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);

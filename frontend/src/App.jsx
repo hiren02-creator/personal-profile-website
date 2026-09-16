@@ -1,7 +1,7 @@
 ﻿import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
-const navigation = ['Home', 'About', 'Skills', 'Projects', 'Investment', 'Contact']
+const navigation = ['Home', 'About', 'Skills', 'Contact']
 const sectionIds = navigation.map((item) => item.toLowerCase())
 
 async function requestJson(url, options) {
@@ -35,8 +35,7 @@ function useResource(url, validate) {
 
 const isProfile = (data) => data && ['name', 'role', 'interest', 'website'].every((key) => typeof data[key] === 'string')
 const isSkillList = (data) => Array.isArray(data) && data.every((skill) => typeof skill === 'string')
-const isSkills = (data) => data && isSkillList(data.aiDeveloper) && isSkillList(data.investment)
-const isProjects = (data) => Array.isArray(data) && data.every((project) => project && ['title', 'category', 'description'].every((key) => typeof project[key] === 'string'))
+const isSkills = (data) => data && isSkillList(data.aiDeveloper)
 
 function ResourceStatus({ resource, label }) {
   if (resource.loading) return <p className="resource-status" role="status">Loading {label}…</p>
@@ -58,6 +57,7 @@ const skillCategories = [
 ]
 
 function SkillCategories({ items }) {
+  if (!items.length) return <p className="resource-status">More skills will be added soon.</p>
   const knownSkills = new Set(skillCategories.flatMap((category) => category.skills))
   const groups = skillCategories
     .map((category) => ({
@@ -85,17 +85,16 @@ function SkillCategories({ items }) {
   )
 }
 
-const investmentTopics = [
-  ['Long-Term Investing', 'Learning how patience, consistency, and clear goals shape stronger financial decisions.'],
-  ['Market Research', 'Studying businesses, market information, and the factors behind investment ideas.'],
-  ['Personal Finance', 'Exploring budgeting, mutual funds, asset allocation, and practical wealth planning.'],
-  ['Risk Management', 'Understanding uncertainty and balancing opportunity with thoughtful protection.'],
+const profileFields = [
+  ['Name', 'name'],
+  ['Focus', 'interest'],
+  ['Interest', 'role'],
+  ['Website', 'website'],
 ]
 
 function App() {
   const profile = useResource('/api/profile', isProfile)
   const skills = useResource('/api/skills', isSkills)
-  const projects = useResource('/api/projects', isProjects)
   const [menuOpen, setMenuOpen] = useState(false)
   const [headerCompact, setHeaderCompact] = useState(
     () => typeof window !== 'undefined' && window.scrollY > 24,
@@ -106,6 +105,7 @@ function App() {
     return sectionIds.includes(hashSection) ? hashSection : 'home'
   })
   const menuButton = useRef(null)
+  const headerRef = useRef(null)
   const submitting = useRef(false)
   const [sending, setSending] = useState(false)
   const [contactStatus, setContactStatus] = useState(null)
@@ -124,20 +124,40 @@ function App() {
     const sections = sectionIds
       .map((id) => document.getElementById(id))
       .filter(Boolean)
-
-    const observer = new IntersectionObserver(
-      (entries) => {
+    let observer
+    function observeSections() {
+      observer?.disconnect()
+      // Pixel margins use viewport height; percentage root margins use width.
+      const marker = Math.round(window.innerHeight * 0.3)
+      observer = new IntersectionObserver((entries) => {
         const visibleSection = entries.find((entry) => entry.isIntersecting)
         if (visibleSection) setActiveSection(visibleSection.target.id)
-      },
-      {
-        rootMargin: '-22% 0px -62% 0px',
+      }, {
+        rootMargin: `-${marker}px 0px -${Math.max(0, window.innerHeight - marker - 1)}px 0px`,
         threshold: 0,
-      },
-    )
+      })
+      sections.forEach((section) => observer.observe(section))
+    }
+    observeSections()
+    window.addEventListener('resize', observeSections)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', observeSections)
+    }
+  }, [])
 
-    sections.forEach((section) => observer.observe(section))
-    return () => observer.disconnect()
+  useEffect(() => {
+    const header = headerRef.current
+    const updateOffset = () => {
+      document.documentElement.style.setProperty('--navigation-offset', `${header.getBoundingClientRect().height}px`)
+    }
+    updateOffset()
+    const observer = new ResizeObserver(updateOffset)
+    observer.observe(header)
+    return () => {
+      observer.disconnect()
+      document.documentElement.style.removeProperty('--navigation-offset')
+    }
   }, [])
 
   function updateField(event) {
@@ -163,8 +183,7 @@ function App() {
         body: JSON.stringify(values),
       })
       if (!data.success) throw new Error('Unable to send message.')
-      setContactStatus({ success: true, message: 'Your message was received by the website. Thank you for reaching out.' })
-      setForm({ name: '', email: '', message: '' })
+      setContactStatus({ success: true, message: 'The form connection works, but message delivery is not configured yet. Your message has not been saved or emailed. Your text remains here for you to copy.' })
     } catch {
       setContactStatus({ success: false, message: 'Unable to send your message. Your text is saved here so you can try again.' })
     } finally {
@@ -176,7 +195,7 @@ function App() {
   return (
     <>
       <a className="skip-link" href="#main-content">Skip to content</a>
-      <header className={`site-header ${headerCompact ? 'is-scrolled' : ''}`} onKeyDown={(event) => {
+      <header ref={headerRef} className={`site-header ${headerCompact ? 'is-scrolled' : ''}`} onKeyDown={(event) => {
         if (event.key === 'Escape' && menuOpen) {
           setMenuOpen(false)
           menuButton.current?.focus()
@@ -203,24 +222,23 @@ function App() {
       <main id="main-content" tabIndex={-1}>
         <section id="home" className="hero screen-section">
           <div className="container hero-container">
-            <div className="hero-heading">
-              <p className="hero-greeting">Hello, I&apos;m</p>
-              <h1>HIREN VISODIYA</h1>
-            </div>
-            <div className="profile-circle">
-              <svg className="circle-text" viewBox="0 0 200 200" aria-hidden="true">
-                <defs><path id="profileCirclePath" d="M 100, 100 m -80, 0 a 80,80 0 1,1 160,0 a 80,80 0 1,1 -160,0" /></defs>
-                <text><textPath href="#profileCirclePath">AI DEVELOPER • INVESTMENT • TECHNOLOGY • PERSONAL FINANCE • </textPath></text>
-              </svg>
-              <div className="profile-image"><img src="/images/profile.jpg" alt="Hiren Visodiya" width="480" height="480" fetchPriority="high" /></div>
-            </div>
-            <div className="hero-details">
-              <h2>AI Developer | Investment Enthusiast</h2>
-              <p className="hero-introduction">I build intelligent applications and explore practical ideas in technology, personal finance, and long-term investing.</p>
+            <div className="hero-copy">
+              <p className="hero-greeting"><span aria-hidden="true" /> Hello, I&apos;m</p>
+              <h1>HIREN<br /><span>VISODIYA</span></h1>
+              <p className="hero-role">Investment Enthusiast <span aria-hidden="true">|</span> AI Developer</p>
               <div className="hero-actions">
-                <a className="button button-primary" href="#projects">View My Projects <span aria-hidden="true">↗</span></a>
-                <a className="button button-secondary" href="#contact">Contact Me <span aria-hidden="true">↗</span></a>
+                <a className="button button-secondary" href="#about">About Me <span aria-hidden="true">↓</span></a>
               </div>
+            </div>
+            <div className="hero-visual">
+              <div className="profile-circle">
+                <svg className="circle-text" viewBox="0 0 200 200" aria-hidden="true">
+                  <defs><path id="profileCirclePath" d="M 100, 100 m -80, 0 a 80,80 0 1,1 160,0 a 80,80 0 1,1 -160,0" /></defs>
+                  <text><textPath href="#profileCirclePath" startOffset="1%">INVESTMENT • AI DEVELOPER • TECHNOLOGY • PERSONAL FINANCE • </textPath></text>
+                </svg>
+                <div className="profile-image"><img src="/images/profile.jpg" alt="Hiren Visodiya" width="480" height="480" fetchPriority="high" decoding="async" /></div>
+              </div>
+
             </div>
           </div>
         </section>
@@ -235,41 +253,17 @@ function App() {
             <div className="about-copy">
               <p className="lead-copy">I am interested in artificial intelligence, AI development, technology, and investment research. I enjoy building useful digital projects and learning how technology and personal investment can work together.</p>
               <ResourceStatus resource={profile} label="profile information" />
-              {profile.data && <dl className="profile-details">{[['Name', profile.data.name], ['Focus', profile.data.role], ['Interest', profile.data.interest], ['Website', profile.data.website]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>}
-              <p className="about-note">My approach combines practical experimentation, continuous learning, and a focus on work that can create lasting value.</p>
+              {profile.data && <dl className="profile-details">{profileFields.map(([label, key]) => <div key={key}><dt>{label}</dt><dd>{profile.data[key]}</dd></div>)}</dl>}
+
             </div>
           </div>
         </section>
 
         <section id="skills" className="section section-tinted screen-section">
           <div className="container">
-            <div className="section-heading"><div><p className="eyebrow">02 / Skills</p><h2>Technologies & Capabilities</h2></div><p>From intelligent APIs to reliable backend systems, these are the tools I use to turn ideas into working products.</p></div>
+            <div className="section-heading"><div><p className="eyebrow">02 / Skills</p><h2>Technologies & Capabilities</h2></div></div>
             <ResourceStatus resource={skills} label="skills" />
             {skills.data && <SkillCategories items={skills.data.aiDeveloper} />}
-          </div>
-        </section>
-
-        <section id="projects" className="section screen-section">
-          <div className="container">
-            <div className="section-heading"><div><p className="eyebrow">03 / Selected Projects</p><h2>Projects with a purpose.</h2></div><p>Exploring the intersection of intelligent software, useful web experiences, and everyday decisions.</p></div>
-            <ResourceStatus resource={projects} label="projects" />
-            {projects.data && (projects.data.length ? <div className="projects-grid">{projects.data.map((project, index) => (
-              <article className="project-card" key={`${project.title}-${index}`}>
-                <div className={`project-art project-art-${index % 3}`} aria-hidden="true"><span className="project-number">{String(index + 1).padStart(2, '0')}</span><span className="project-symbol">{['✳', '</>', '↗'][index % 3]}</span><span className="project-art-label">{project.category}</span></div>
-                <div className="project-copy"><p className="eyebrow">Project {String(index + 1).padStart(2, '0')}</p><h3>{project.title}</h3><p>{project.description}</p><ul className="project-stack" aria-label={`${project.title} technology stack`}><li>{project.category}</li></ul><span className="project-note">Project details available on request</span></div>
-              </article>
-            ))}</div> : <p className="resource-status">New projects are on the way.</p>)}
-          </div>
-        </section>
-
-        <section id="investment" className="section investment-section screen-section">
-          <div className="container investment-layout">
-            <div className="investment-intro"><p className="eyebrow">04 / Investment</p><h2>Long-Term<br />Thinking</h2><p className="investment-introduction">My curiosity extends to personal finance, mutual funds, asset allocation, budgeting, stock market research, and thoughtful wealth planning.</p><p className="investment-note">Learning today. Planning for tomorrow.</p></div>
-            <div className="investment-content">
-              <div className="investment-topics">{investmentTopics.map(([title, description], index) => <article key={title}><span>{String(index + 1).padStart(2, '0')}</span><div><h3>{title}</h3><p>{description}</p></div></article>)}</div>
-              <ResourceStatus resource={skills} label="investment skills" />
-              {skills.data && <ul className="investment-tags" aria-label="Investment skills">{skills.data.investment.map((skill) => <li key={skill}>{skill}</li>)}</ul>}
-            </div>
           </div>
         </section>
 
