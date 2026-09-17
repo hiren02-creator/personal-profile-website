@@ -1,8 +1,25 @@
 ﻿import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
-const navigation = ['Home', 'About', 'Skills', 'Contact']
-const sectionIds = navigation.map((item) => item.toLowerCase())
+const navigation = ['Home', 'About', 'Skills', 'Contact', 'Resume']
+const sectionIds = navigation
+  .filter((item) => item !== 'Resume')
+  .map((item) => item.toLowerCase())
+const resumeSections = ['Header', 'Summary', 'Experience', 'Education']
+
+function navigationHref(item) {
+  return item === 'Resume' ? '#/resume' : `#${item.toLowerCase()}`
+}
+
+function isResumeHash(hash) {
+  return hash === '#/resume' || hash.startsWith('#/resume/')
+}
+
+function resumeSectionFromHash(hash) {
+  const requestedSection = hash.replace('#/resume/', '')
+  const section = resumeSections.find((item) => item.toLowerCase() === requestedSection)
+  return section?.toLowerCase() || 'header'
+}
 
 const profile = {
   name: 'Hiren Visodiya',
@@ -73,7 +90,7 @@ const profileFields = [
   ['Website', 'website'],
 ]
 
-function App() {
+function Website() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [headerCompact, setHeaderCompact] = useState(
     () => typeof window !== 'undefined' && window.scrollY > 24,
@@ -211,7 +228,7 @@ function App() {
           <nav id="primary-navigation" className={`site-nav ${menuOpen ? 'is-open' : ''}`} aria-label="Primary navigation">
             {navigation.map((item) => {
               const sectionId = item.toLowerCase()
-              return <a key={item} className={activeSection === sectionId ? 'active' : ''} href={`#${sectionId}`} aria-current={activeSection === sectionId ? 'location' : undefined} onClick={() => {
+              return <a key={item} className={activeSection === sectionId ? 'active' : ''} href={navigationHref(item)} aria-current={activeSection === sectionId ? 'location' : undefined} onClick={() => {
                 setMenuOpen(false)
               }}>{item}</a>
             })}
@@ -291,6 +308,171 @@ function App() {
       <footer className="site-footer"><div className="container footer-container"><a className="site-brand" href="#home"><span className="brand-mark" aria-hidden="true">hv.</span><span>Hiren Visodiya</span></a><p>© {new Date().getFullYear()} Hiren Visodiya</p><a href="#home">Back to top <span aria-hidden="true">↑</span></a></div></footer>
     </>
   )
+}
+
+const educationEntries = [
+  { year: '2025–Present', institution: 'Amity University' },
+  { year: '2022–2025', institution: 'Indira Gandhi Open University' },
+  { year: '2019–2022', institution: 'K.L Institute for The DEAF' },
+  { year: '2008–2019', institution: 'Mata Lachmin Rotary Institute For Deaf' },
+]
+
+function EducationTimelineItem({ entry }) {
+  const itemRef = useRef(null)
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    const item = itemRef.current
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true)
+        observer.disconnect()
+      }
+    }, { threshold: 0.25 })
+
+    observer.observe(item)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <li ref={itemRef} className={isVisible ? 'is-visible' : ''}>
+      <span className="education-timeline-dot" aria-hidden="true" />
+      <time>{entry.year}</time>
+      <h3>{entry.institution}</h3>
+    </li>
+  )
+}
+
+function EducationTimeline() {
+  return (
+    <ol className="education-timeline">
+      {educationEntries.map((entry) => <EducationTimelineItem key={entry.year} entry={entry} />)}
+    </ol>
+  )
+}
+
+function ResumePage() {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [headerCompact, setHeaderCompact] = useState(
+    () => typeof window !== 'undefined' && window.scrollY > 24,
+  )
+  const [activeResumeSection, setActiveResumeSection] = useState(
+    () => resumeSectionFromHash(window.location.hash),
+  )
+  const menuButton = useRef(null)
+  const headerRef = useRef(null)
+
+  useEffect(() => {
+    function updateHeaderState() {
+      setHeaderCompact(window.scrollY > 24)
+    }
+
+    window.addEventListener('scroll', updateHeaderState, { passive: true })
+    return () => window.removeEventListener('scroll', updateHeaderState)
+  }, [])
+
+  useEffect(() => {
+    const header = headerRef.current
+    const updateOffset = () => {
+      document.documentElement.style.setProperty('--navigation-offset', `${header.getBoundingClientRect().height}px`)
+    }
+    updateOffset()
+    const observer = new ResizeObserver(updateOffset)
+    observer.observe(header)
+    return () => {
+      observer.disconnect()
+      document.documentElement.style.removeProperty('--navigation-offset')
+    }
+  }, [])
+
+  useEffect(() => {
+    let frame
+    function scrollToResumeSection() {
+      const section = resumeSectionFromHash(window.location.hash)
+      setActiveResumeSection(section)
+      setMenuOpen(false)
+      frame = window.requestAnimationFrame(() => {
+        document.getElementById(`resume-${section}`)?.scrollIntoView()
+      })
+    }
+
+    scrollToResumeSection()
+    window.addEventListener('hashchange', scrollToResumeSection)
+    return () => {
+      window.removeEventListener('hashchange', scrollToResumeSection)
+      window.cancelAnimationFrame(frame)
+    }
+  }, [])
+
+  return (
+    <>
+      <a className="skip-link" href="#resume-content">Skip to content</a>
+      <header ref={headerRef} className={`site-header ${headerCompact ? 'is-scrolled' : ''}`} onKeyDown={(event) => {
+        if (event.key === 'Escape' && menuOpen) {
+          setMenuOpen(false)
+          menuButton.current?.focus()
+        }
+      }}>
+        <div className="container header-container">
+          <a className="header-brand" href="#home" onClick={() => setMenuOpen(false)}>Personal Profile Website</a>
+          <button ref={menuButton} className="menu-toggle" type="button" aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={menuOpen} aria-controls="resume-primary-navigation" onClick={() => setMenuOpen(!menuOpen)}>
+            <span className="menu-toggle-label">{menuOpen ? 'Close' : 'Menu'}</span>
+            <span className={`hamburger ${menuOpen ? 'is-open' : ''}`} aria-hidden="true"><span /><span /></span>
+          </button>
+          <nav id="resume-primary-navigation" className={`site-nav ${menuOpen ? 'is-open' : ''}`} aria-label="Primary navigation">
+            {navigation.map((item) => <a key={item} className={item === 'Resume' ? 'active' : ''} href={navigationHref(item)} aria-current={item === 'Resume' ? 'page' : undefined} onClick={() => setMenuOpen(false)}>{item}</a>)}
+          </nav>
+        </div>
+      </header>
+
+      <nav className="container resume-section-nav" aria-label="Resume sections">
+        {resumeSections.map((item) => {
+          const sectionId = item.toLowerCase()
+          return <a key={item} className={activeResumeSection === sectionId ? 'active' : ''} href={`#/resume/${sectionId}`} aria-current={activeResumeSection === sectionId ? 'location' : undefined}>{item}</a>
+        })}
+      </nav>
+
+      <main id="resume-content" tabIndex={-1}>
+        <section id="resume-header" className="section" aria-labelledby="resume-heading">
+          <div className="container">
+            <header><h1 id="resume-heading">Resume</h1></header>
+          </div>
+        </section>
+
+        <section id="resume-summary" className="section" aria-labelledby="resume-summary-heading">
+          <div className="container"><h2 id="resume-summary-heading">Summary</h2></div>
+        </section>
+
+        <section id="resume-experience" className="section" aria-labelledby="resume-experience-heading">
+          <div className="container"><h2 id="resume-experience-heading">Experience</h2></div>
+        </section>
+
+        <section id="resume-education" className="section" aria-labelledby="resume-education-heading">
+          <div className="container">
+            <h2 id="resume-education-heading">Education</h2>
+            <EducationTimeline />
+          </div>
+        </section>
+      </main>
+    </>
+  )
+}
+
+function App() {
+  const [showResume, setShowResume] = useState(
+    () => typeof window !== 'undefined' && isResumeHash(window.location.hash),
+  )
+
+  useEffect(() => {
+    function updateView() {
+      setShowResume(isResumeHash(window.location.hash))
+    }
+
+    window.addEventListener('hashchange', updateView)
+    return () => window.removeEventListener('hashchange', updateView)
+  }, [])
+
+  return showResume ? <ResumePage /> : <Website />
 }
 
 export default App
