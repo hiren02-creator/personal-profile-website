@@ -4,48 +4,29 @@ import './App.css'
 const navigation = ['Home', 'About', 'Skills', 'Contact']
 const sectionIds = navigation.map((item) => item.toLowerCase())
 
+const profile = {
+  name: 'Hiren Visodiya',
+  role: 'AI Developer',
+  interest: 'Investment',
+  website: 'Personal Profile Website',
+}
+
+const skills = [
+  'Python',
+  'Node.js',
+  'Express.js',
+  'REST APIs',
+  'Supabase',
+  'PostgreSQL',
+  'Git',
+  'GitHub',
+  'AI APIs',
+]
+
 async function requestJson(url, options) {
   const response = await fetch(url, options)
   if (!response.ok) throw new Error('Request failed.')
   return response.json()
-}
-
-function useResource(url, validate) {
-  const [state, setState] = useState({ data: null, loading: true, error: false })
-  const [attempt, setAttempt] = useState(0)
-  useEffect(() => {
-    const controller = new AbortController()
-    requestJson(url, { signal: controller.signal })
-      .then((data) => {
-        if (!validate(data)) throw new Error('Unexpected response.')
-        if (!controller.signal.aborted) setState({ data, loading: false, error: false })
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setState({ data: null, loading: false, error: true })
-      })
-    return () => controller.abort()
-  }, [url, validate, attempt])
-  function retry() {
-    setState({ data: null, loading: true, error: false })
-    setAttempt((value) => value + 1)
-  }
-
-  return { ...state, retry }
-}
-
-const isProfile = (data) => data && ['name', 'role', 'interest', 'website'].every((key) => typeof data[key] === 'string')
-const isSkillList = (data) => Array.isArray(data) && data.every((skill) => typeof skill === 'string')
-const isSkills = (data) => data && isSkillList(data.aiDeveloper)
-
-function ResourceStatus({ resource, label }) {
-  if (resource.loading) return <p className="resource-status" role="status">Loading {label}…</p>
-  if (resource.error) return (
-    <div className="resource-status" role="status">
-      <p>Unable to load {label}. Please try again.</p>
-      <button className="text-button" type="button" onClick={resource.retry}>Try again <span aria-hidden="true">↗</span></button>
-    </div>
-  )
-  return null
 }
 
 const skillCategories = [
@@ -93,8 +74,6 @@ const profileFields = [
 ]
 
 function App() {
-  const profile = useResource('/api/profile', isProfile)
-  const skills = useResource('/api/skills', isSkills)
   const [menuOpen, setMenuOpen] = useState(false)
   const [headerCompact, setHeaderCompact] = useState(
     () => typeof window !== 'undefined' && window.scrollY > 24,
@@ -110,6 +89,26 @@ function App() {
   const [sending, setSending] = useState(false)
   const [contactStatus, setContactStatus] = useState(null)
   const [form, setForm] = useState({ name: '', email: '', message: '' })
+
+  useEffect(() => {
+    const hashSection = window.location.hash.slice(1)
+    if (!sectionIds.includes(hashSection)) return
+
+    let frame
+    function scrollToHashSection() {
+      frame = window.requestAnimationFrame(() => {
+        document.getElementById(hashSection)?.scrollIntoView()
+      })
+    }
+
+    if (document.readyState === 'complete') scrollToHashSection()
+    else window.addEventListener('load', scrollToHashSection, { once: true })
+
+    return () => {
+      window.removeEventListener('load', scrollToHashSection)
+      window.cancelAnimationFrame(frame)
+    }
+  }, [])
 
   useEffect(() => {
     function updateHeaderState() {
@@ -252,8 +251,7 @@ function App() {
             </div>
             <div className="about-copy">
               <p className="lead-copy">I am interested in artificial intelligence, AI development, technology, and investment research. I enjoy building useful digital projects and learning how technology and personal investment can work together.</p>
-              <ResourceStatus resource={profile} label="profile information" />
-              {profile.data && <dl className="profile-details">{profileFields.map(([label, key]) => <div key={key}><dt>{label}</dt><dd>{profile.data[key]}</dd></div>)}</dl>}
+              <dl className="profile-details">{profileFields.map(([label, key]) => <div key={key}><dt>{label}</dt><dd>{profile[key]}</dd></div>)}</dl>
 
             </div>
           </div>
@@ -262,8 +260,7 @@ function App() {
         <section id="skills" className="section section-tinted screen-section">
           <div className="container">
             <div className="section-heading"><div><p className="eyebrow">02 / Skills</p><h2>Technologies & Capabilities</h2></div></div>
-            <ResourceStatus resource={skills} label="skills" />
-            {skills.data && <SkillCategories items={skills.data.aiDeveloper} />}
+            <SkillCategories items={skills} />
           </div>
         </section>
 
