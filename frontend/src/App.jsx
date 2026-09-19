@@ -1,4 +1,5 @@
 ﻿import { useEffect, useRef, useState } from 'react'
+import { supabase } from './supabase'
 import './App.css'
 
 const navigation = ['Home', 'About', 'Skills', 'Contact', 'Resume']
@@ -31,12 +32,6 @@ const skills = [
   'GitHub',
   'AI APIs',
 ]
-
-async function requestJson(url, options) {
-  const response = await fetch(url, options)
-  if (!response.ok) throw new Error('Request failed.')
-  return response.json()
-}
 
 const skillCategories = [
   { title: 'AI & Development', skills: ['Python', 'AI APIs'] },
@@ -173,7 +168,7 @@ function Website() {
     setContactStatus(null)
   }
 
-  async function handleContactSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
     if (submitting.current) return
     const values = Object.fromEntries(Object.entries(form).map(([key, value]) => [key, value.trim()]))
@@ -185,15 +180,16 @@ function Website() {
     setSending(true)
     setContactStatus(null)
     try {
-      const data = await requestJson('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      })
-      if (!data.success) throw new Error('Unable to send message.')
-      setContactStatus({ success: true, message: 'The form connection works, but message delivery is not configured yet. Your message has not been saved or emailed. Your text remains here for you to copy.' })
-    } catch {
-      setContactStatus({ success: false, message: 'Unable to send your message. Your text is saved here so you can try again.' })
+      const { name, email, message } = values
+      const { error } = await supabase
+        .from('contact_messages')
+        .insert([{ name, email, message }])
+      if (error) throw error
+      setContactStatus({ success: true, message: 'Message sent successfully!' })
+      setForm({ name: '', email: '', message: '' })
+    } catch (error) {
+      console.error('Supabase contact submission failed:', error)
+      setContactStatus({ success: false, message: 'Something went wrong. Please try again.' })
     } finally {
       submitting.current = false
       setSending(false)
@@ -284,7 +280,7 @@ function Website() {
                 <div><span>GitHub</span><strong>Configure profile URL</strong></div>
               </div>
             </div>
-            <form className="contact-form" onSubmit={handleContactSubmit} aria-busy={sending}>
+            <form className="contact-form" onSubmit={handleSubmit} aria-busy={sending}>
               <div className="form-heading"><span>Send a message</span><span aria-hidden="true">↗</span></div>
               <div className="form-row">
                 <label htmlFor="contact-name">Your name<input id="contact-name" name="name" autoComplete="name" placeholder="Full name" value={form.name} onChange={updateField} maxLength={120} disabled={sending} required /></label>
