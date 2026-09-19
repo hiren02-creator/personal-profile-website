@@ -5,20 +5,12 @@ const navigation = ['Home', 'About', 'Skills', 'Contact', 'Resume']
 const sectionIds = navigation
   .filter((item) => item !== 'Resume')
   .map((item) => item.toLowerCase())
-const resumeSections = ['Header', 'Summary', 'Experience', 'Education']
-
 function navigationHref(item) {
   return item === 'Resume' ? '#/resume' : `#${item.toLowerCase()}`
 }
 
 function isResumeHash(hash) {
   return hash === '#/resume' || hash.startsWith('#/resume/')
-}
-
-function resumeSectionFromHash(hash) {
-  const requestedSection = hash.replace('#/resume/', '')
-  const section = resumeSections.find((item) => item.toLowerCase() === requestedSection)
-  return section?.toLowerCase() || 'header'
 }
 
 const profile = {
@@ -310,14 +302,16 @@ function Website() {
   )
 }
 
-const educationEntries = [
-  { year: '2025–Present', institution: 'Amity University' },
-  { year: '2022–2025', institution: 'Indira Gandhi Open University' },
-  { year: '2019–2022', institution: 'K.L Institute for The DEAF' },
-  { year: '2008–2019', institution: 'Mata Lachmin Rotary Institute For Deaf' },
+const educationTimelineEntries = [
+  { period: '2026–Present', title: 'Instructor', organization: 'Deaf Enabled Foundation', location: 'Ahmedabad, India' },
+  { period: '2025–Present', university: 'Amity University', location: 'Hyderabad, India' },
+  { period: '2025–2026', title: 'Internship', organization: 'Deaf Enabled Foundation',},
+  { period: '2022–2025', title: 'Deaf Enabled Foundation', },
+  { period: '2019–2022', institution: 'K.L Institute for The DEAF'},
+  { period: '2008–2019', institution: 'Mata Lachmin Rotary Institute For Deaf' },
 ]
 
-function EducationTimelineItem({ entry }) {
+function ResumeTimelineItem({ entry }) {
   const itemRef = useRef(null)
   const [isVisible, setIsVisible] = useState(false)
 
@@ -336,17 +330,23 @@ function EducationTimelineItem({ entry }) {
 
   return (
     <li ref={itemRef} className={isVisible ? 'is-visible' : ''}>
-      <span className="education-timeline-dot" aria-hidden="true" />
-      <time>{entry.year}</time>
-      <h3>{entry.institution}</h3>
+      <span className="resume-timeline-dot" aria-hidden="true" />
+      <div className="resume-timeline-card">
+        <time>{entry.period}</time>
+        <h3>{entry.title || entry.university || entry.institution}</h3>
+        {entry.organization && <p>{entry.organization}</p>}
+        {entry.location && <p>{entry.location}</p>}
+      </div>
     </li>
   )
 }
 
-function EducationTimeline() {
+function ResumeTimeline({ entries }) {
   return (
-    <ol className="education-timeline">
-      {educationEntries.map((entry) => <EducationTimelineItem key={entry.year} entry={entry} />)}
+    <ol className="resume-timeline">
+      {entries.map((entry) => (
+        <ResumeTimelineItem key={`${entry.period}-${entry.title}`} entry={entry} />
+      ))}
     </ol>
   )
 }
@@ -355,9 +355,6 @@ function ResumePage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [headerCompact, setHeaderCompact] = useState(
     () => typeof window !== 'undefined' && window.scrollY > 24,
-  )
-  const [activeResumeSection, setActiveResumeSection] = useState(
-    () => resumeSectionFromHash(window.location.hash),
   )
   const menuButton = useRef(null)
   const headerRef = useRef(null)
@@ -385,25 +382,6 @@ function ResumePage() {
     }
   }, [])
 
-  useEffect(() => {
-    let frame
-    function scrollToResumeSection() {
-      const section = resumeSectionFromHash(window.location.hash)
-      setActiveResumeSection(section)
-      setMenuOpen(false)
-      frame = window.requestAnimationFrame(() => {
-        document.getElementById(`resume-${section}`)?.scrollIntoView()
-      })
-    }
-
-    scrollToResumeSection()
-    window.addEventListener('hashchange', scrollToResumeSection)
-    return () => {
-      window.removeEventListener('hashchange', scrollToResumeSection)
-      window.cancelAnimationFrame(frame)
-    }
-  }, [])
-
   return (
     <>
       <a className="skip-link" href="#resume-content">Skip to content</a>
@@ -425,13 +403,6 @@ function ResumePage() {
         </div>
       </header>
 
-      <nav className="container resume-section-nav" aria-label="Resume sections">
-        {resumeSections.map((item) => {
-          const sectionId = item.toLowerCase()
-          return <a key={item} className={activeResumeSection === sectionId ? 'active' : ''} href={`#/resume/${sectionId}`} aria-current={activeResumeSection === sectionId ? 'location' : undefined}>{item}</a>
-        })}
-      </nav>
-
       <main id="resume-content" tabIndex={-1}>
         <section id="resume-header" className="section" aria-labelledby="resume-heading">
           <div className="container">
@@ -439,18 +410,10 @@ function ResumePage() {
           </div>
         </section>
 
-        <section id="resume-summary" className="section" aria-labelledby="resume-summary-heading">
-          <div className="container"><h2 id="resume-summary-heading">Summary</h2></div>
-        </section>
-
-        <section id="resume-experience" className="section" aria-labelledby="resume-experience-heading">
-          <div className="container"><h2 id="resume-experience-heading">Experience</h2></div>
-        </section>
-
-        <section id="resume-education" className="section" aria-labelledby="resume-education-heading">
+        <section id="resume-journey" className="section" aria-labelledby="resume-journey-heading">
           <div className="container">
-            <h2 id="resume-education-heading">Education</h2>
-            <EducationTimeline />
+            <h2 id="resume-journey-heading">The Journey So Far.</h2>
+            <ResumeTimeline entries={educationTimelineEntries} />
           </div>
         </section>
       </main>
