@@ -275,10 +275,20 @@ function Website() {
               <p className="eyebrow">05 / Contact</p><h2>Let&apos;s Connect.</h2>
               <p>Have an idea, a question, or a shared interest? Feel free to connect about AI development, technology, and investment research.</p>
               <div className="contact-options" aria-label="Contact details">
-                <div><span>Email</span><strong><a href="mailto:hirenwork62@gmail.com">hirenwork62@gmail.com</a></strong></div>
-                <div><span>LinkedIn</span><strong><a href="https://www.linkedin.com/in/hiren-visodiya-416141208/" target="_blank" rel="noopener noreferrer">https://www.linkedin.com/in/hiren-visodiya-416141208/</a></strong></div>
-                <div><span>GitHub</span><strong><a href="https://github.com/hiren02-creator" target="_blank" rel="noopener noreferrer">https://github.com/hiren02-creator</a></strong></div>
+                <a className="contact-card" href="mailto:hirenwork62@gmail.com">
+                  <span className="contact-card-copy"><span className="contact-card-label">Email</span><strong>hirenwork62@gmail.com</strong></span>
+                  <span className="contact-card-arrow" aria-hidden="true">↗</span>
+                </a>
+                <a className="contact-card" href="https://www.linkedin.com/in/hiren-visodiya-416141208/" target="_blank" rel="noopener noreferrer">
+                  <span className="contact-card-copy"><span className="contact-card-label">LinkedIn</span><strong>hiren-visodiya</strong></span>
+                  <span className="contact-card-arrow" aria-hidden="true">↗</span>
+                </a>
+                <a className="contact-card" href="https://github.com/hiren02-creator" target="_blank" rel="noopener noreferrer">
+                  <span className="contact-card-copy"><span className="contact-card-label">GitHub</span><strong>hiren02-creator</strong></span>
+                  <span className="contact-card-arrow" aria-hidden="true">↗</span>
+                </a>
               </div>
+              <p className="contact-availability"><span aria-hidden="true">●</span> Available for new conversations</p>
             </div>
             <form className="contact-form" onSubmit={handleSubmit} aria-busy={sending}>
               <div className="form-heading"><span>Send a message</span><span aria-hidden="true">↗</span></div>
@@ -287,8 +297,9 @@ function Website() {
                 <label htmlFor="contact-email">Email address<input id="contact-email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={form.email} onChange={updateField} maxLength={254} disabled={sending} required /></label>
               </div>
               <label htmlFor="contact-message">Your message<textarea id="contact-message" name="message" placeholder="Tell me what’s on your mind…" rows={5} value={form.message} onChange={updateField} maxLength={5000} disabled={sending} required /></label>
-              <button className="button button-primary" type="submit" disabled={sending}>{sending ? 'Sending…' : 'Send message'} <span aria-hidden="true">↗</span></button>
+              <button className="button button-primary" type="submit" disabled={sending}>{sending ? 'Sending...' : 'Send message'} <span aria-hidden="true">↗</span></button>
               <div aria-live="polite" aria-atomic="true">{contactStatus && <p className={`contact-status ${contactStatus.success ? 'success' : 'error'}`}>{contactStatus.message}</p>}</div>
+              <p className="contact-form-note">Let&apos;s build something meaningful.</p>
             </form>
           </div>
         </section>
