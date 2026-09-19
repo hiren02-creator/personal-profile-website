@@ -304,8 +304,8 @@ function Website() {
 
 const educationTimelineEntries = [
   { period: '2026–Present', title: 'Instructor', organization: 'Deaf Enabled Foundation', location: 'Ahmedabad, India' },
-  { period: '2025–Present', university: 'Amity University', location: 'Hyderabad, India' },
-  { period: '2025–2026', title: 'Internship', organization: 'Deaf Enabled Foundation',},
+  { period: '2025–Present', university: 'Amity University', },
+  { period: '2025–2026', title: 'Internship', organization: 'Deaf Enabled Foundation', location: 'Hyderabad, India' },
   { period: '2022–2025', title: 'Deaf Enabled Foundation', },
   { period: '2019–2022', institution: 'K.L Institute for The DEAF'},
   { period: '2008–2019', institution: 'Mata Lachmin Rotary Institute For Deaf' },
@@ -348,6 +348,30 @@ function ResumeTimeline({ entries }) {
         <ResumeTimelineItem key={`${entry.period}-${entry.title}`} entry={entry} />
       ))}
     </ol>
+  )
+}
+
+function ResumeJourneyHeading() {
+  const headingRef = useRef(null)
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true)
+        observer.disconnect()
+      }
+    }, { threshold: 0.25 })
+
+    observer.observe(headingRef.current)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <header ref={headingRef} className={`resume-journey-intro${isVisible ? ' is-visible' : ''}`}>
+      <p className="resume-journey-label">MY JOURNEY</p>
+      <h2 id="resume-journey-heading">The Journey <span>So Far.</span></h2>
+    </header>
   )
 }
 
@@ -407,12 +431,21 @@ function ResumePage() {
         <section id="resume-header" className="section" aria-labelledby="resume-heading">
           <div className="container">
             <header><h1 id="resume-heading">Resume</h1></header>
+            <div className="resume-document">
+              <object className="resume-document-preview" data={`${import.meta.env.BASE_URL}resume.pdf#view=FitH`} type="application/pdf" aria-label="Resume PDF preview">
+                <p>Your browser cannot display this PDF inline. <a href={`${import.meta.env.BASE_URL}resume.pdf`} target="_blank" rel="noopener noreferrer">View Resume</a> to read it in a new tab.</p>
+              </object>
+              <div className="resume-document-actions">
+                <a className="button button-secondary" href={`${import.meta.env.BASE_URL}resume.pdf`} target="_blank" rel="noopener noreferrer">View Resume</a>
+                <a className="button button-primary" href={`${import.meta.env.BASE_URL}resume.pdf`} download="Simple Professional CV Resume.pdf">Download Resume</a>
+              </div>
+            </div>
           </div>
         </section>
 
         <section id="resume-journey" className="section" aria-labelledby="resume-journey-heading">
           <div className="container">
-            <h2 id="resume-journey-heading">The Journey So Far.</h2>
+            <ResumeJourneyHeading />
             <ResumeTimeline entries={educationTimelineEntries} />
           </div>
         </section>
