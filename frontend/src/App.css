@@ -108,6 +108,8 @@ h2 { font-size: clamp(2rem, 3.6vw, 3rem); font-weight: 600; letter-spacing: -.04
 .contact-options > div { display: grid; grid-template-columns: 90px 1fr; gap: 15px; padding: 13px 0; border-bottom: 1px solid var(--line); }
 .contact-options span { color: #728078; font-size: .7rem; }
 .contact-options strong { color: #7b847e; font-size: .74rem; font-weight: 500; }
+.contact-options strong a { color: inherit; font: inherit; text-decoration: none; cursor: pointer; transition: opacity 180ms ease; }
+.contact-options strong a:hover { opacity: .75; }
 .contact-form { display: flex; flex-direction: column; gap: 22px; padding: clamp(24px, 3vw, 38px); border: 1px solid var(--line); border-radius: 9px; background: #f7f8f3; }
 .form-heading { display: flex; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--line); font-size: .9rem; font-weight: 600; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
