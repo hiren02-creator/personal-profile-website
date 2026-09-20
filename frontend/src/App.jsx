@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import './App.css'
 
@@ -350,12 +350,12 @@ function Website() {
 }
 
 const educationTimelineEntries = [
-  { period: '2026–Present', title: 'Instructor', organization: 'Deaf Enabled Foundation', location: 'Ahmedabad, India' },
-  { period: '2025–Present', university: 'Amity University', },
-  { period: '2025–2026', title: 'Internship', organization: 'Deaf Enabled Foundation', location: 'Hyderabad, India' },
-  { period: '2022–2025', title: 'Deaf Enabled Foundation', },
-  { period: '2019–2022', institution: 'K.L Institute for The DEAF'},
-  { period: '2008–2019', institution: 'Mata Lachmin Rotary Institute For Deaf' },
+  { period: '2026–Present', title: 'Instructor', organization: 'Deaf Enabled Foundation', location: 'Ahmedabad, Gujarat' },
+  { period: '2025–Present', university: 'Amity University', location: 'Noida, Uttar Pradesh' },
+  { period: '2025–2026', title: 'Internship', organization: 'Deaf Enabled Foundation', location: 'Hyderabad, Telangana' },
+  { period: '2022–2025', title: 'Deaf Enabled Foundation', location: 'Hyderabad, Telangana' },
+  { period: '2019–2022', institution: 'K.L Institute for The DEAF', location: 'Bhavnagar, Gujarat'},
+  { period: '2008–2019', institution: 'Mata Lachmin Rotary Institute For Deaf', location: 'Kutch, Gujarat'},
 ]
 
 function ResumeTimelineItem({ entry }) {
