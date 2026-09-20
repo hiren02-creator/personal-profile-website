@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import './App.css'
 
@@ -77,6 +77,47 @@ const profileFields = [
   ['Website', 'website'],
 ]
 
+function AboutSection() {
+  const sectionRef = useRef(null)
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('about-entered')
+          observer.unobserve(entry.target)
+        }
+      })
+    }, { threshold: 0.15 })
+    sectionRef.current.querySelectorAll('[data-about-reveal]').forEach((item) => observer.observe(item))
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <section ref={sectionRef} id="about" className="section screen-section" aria-labelledby="about-heading">
+      <div className="container about-layout">
+        <div className="about-statement" data-about-reveal>
+          <p className="eyebrow">01 / About Me</p>
+          <h2 id="about-heading">Building<br /><em>technology</em><br />with purpose.</h2>
+          <p className="about-annotation">AI • Technology • Investment</p>
+        </div>
+        <div className="about-copy" data-about-reveal>
+          <p className="lead-copy"><strong>I am interested in artificial intelligence, AI development, technology, and investment research.</strong></p>
+          <p className="about-body">I enjoy building useful digital projects and learning how technology and personal investment can work together.</p>
+        </div>
+        <dl className="profile-details" data-about-reveal>
+          {profileFields.map(([label, key], index) => (
+            <div className="about-detail" key={key} style={{ '--about-delay': `${index * 90}ms` }}>
+              <dt><span className="about-detail-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>{label}</dt>
+              <dd>{key === 'website' ? <a href="#home">{profile[key]} <span className="about-link-arrow" aria-hidden="true">↗</span></a> : profile[key]}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  )
+}
 function Website() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [headerCompact, setHeaderCompact] = useState(
@@ -247,20 +288,7 @@ function Website() {
           </div>
         </section>
 
-        <section id="about" className="section screen-section">
-          <div className="container about-layout">
-            <div className="section-intro">
-              <span className="section-number" aria-hidden="true">01</span>
-              <p className="eyebrow">About Me</p>
-              <h2>Building technology<br />with purpose.</h2>
-            </div>
-            <div className="about-copy">
-              <p className="lead-copy">I am interested in artificial intelligence, AI development, technology, and investment research. I enjoy building useful digital projects and learning how technology and personal investment can work together.</p>
-              <dl className="profile-details">{profileFields.map(([label, key]) => <div key={key}><dt>{label}</dt><dd>{profile[key]}</dd></div>)}</dl>
-
-            </div>
-          </div>
-        </section>
+        <AboutSection />
 
         <section id="skills" className="section section-tinted screen-section">
           <div className="container">
