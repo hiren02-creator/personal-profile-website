@@ -106,7 +106,7 @@ function AboutSection() {
         <div className="about-statement" data-about-reveal>
           <p className="eyebrow">01 / About Me</p>
           <h2 id="about-heading">Building<br /><em>technology</em><br />with purpose.</h2>
-          <p className="about-annotation">AI • Technology • Investment</p>
+          <p className="about-annotation">AI • Technology • Investment</p> 
         </div>
         <div className="about-copy" data-about-reveal>
           <p className="lead-copy"><strong>I am interested in artificial intelligence, AI development, technology, and investment research.</strong></p>
@@ -284,10 +284,13 @@ function Website() {
             <div className="hero-visual">
               <div className="profile-circle">
                 <svg className="circle-text" viewBox="0 0 200 200" aria-hidden="true">
-                  <defs><path id="profileCirclePath" d="M 100, 100 m -80, 0 a 80,80 0 1,1 160,0 a 80,80 0 1,1 -160,0" /></defs>
-                  <text><textPath href="#profileCirclePath" startOffset="1%">INVESTMENT • AI DEVELOPER • TECHNOLOGY • PERSONAL FINANCE • </textPath></text>
+                  <defs><path id="profileCirclePath" d="M 100, 100 m -86, 0 a 86,86 0 1,1 172,0 a 86,86 0 1,1 -172,0" /></defs>
+                  <text textLength="526" lengthAdjust="spacing"><textPath href="#profileCirclePath" startOffset="1%">INVESTMENT • AI DEVELOPER • TECHNOLOGY • PERSONAL FINANCE • </textPath></text>
                 </svg>
                 <div className="profile-image"><img src="/images/profile.jpg" alt="Hiren Visodiya" width="480" height="480" fetchPriority="high" decoding="async" /></div>
+                <svg className="profile-sparkle" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2C16 12 12 16 2 16c10 0 14 4 14 14 0-10 4-14 14-14C20 16 16 12 16 2Z" /></svg>
+                <span className="profile-dots" aria-hidden="true" />
+                <svg className="profile-doodle" viewBox="0 0 44 24" aria-hidden="true"><path d="M3 18C10 3 17 3 19 13s8 10 12-2c2-6 6-8 10-7" /></svg>
               </div>
 
             </div>
