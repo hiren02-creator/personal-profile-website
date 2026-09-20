@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import './App.css'
 
@@ -298,7 +298,10 @@ function Website() {
 
         <section id="skills" className="section section-tinted screen-section">
           <div className="container">
-            <div className="section-heading"><div><p className="eyebrow">02 / Skills</p><h2>Technologies & Capabilities</h2></div></div>
+            <div className="section-heading">
+              <div><p className="eyebrow">02 / Skills</p><h2>Technologies &amp; Capabilities</h2></div>
+              <p className="skills-status"><span aria-hidden="true" />Always learning</p>
+            </div>
             <SkillCategories items={skills} />
           </div>
         </section>
