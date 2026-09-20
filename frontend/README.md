@@ -1,16 +1,33 @@
-# React + Vite
+# Personal profile website
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The deployed website is the React application in this directory. The root Express server serves its production build.
 
-Currently, two official plugins are available:
+## Install and verify
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Run from the repository root:
 
-## React Compiler
+```sh
+npm ci
+npm --prefix frontend ci
+npm run lint
+npm run build
+npm start
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The server uses the hosting provider's PORT environment variable, or port 3000 locally.
 
-## Expanding the Oxlint configuration
+## Contact form configuration
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Copy frontend/.env.example to frontend/.env.local for local development. On your hosting provider, set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY before building. Vite includes these public settings in the build, so rebuild after changing them. Never use a Supabase secret or service-role key in frontend settings.
+
+The form inserts name, email, and message into the existing contact_messages table. The Supabase project must permit the intended anonymous inserts through its row-level security policy. Confirm delivery in your own project before launch; browser regression checks simulate responses and do not create real messages.
+
+Missing settings no longer crash the profile, but contact submissions cannot succeed without a configured service.
+
+## Hosting
+
+For static hosting, install frontend dependencies, run npm run build from the repository root, and publish frontend/dist. For Node hosting, also install root dependencies and use npm start after building.
+
+Keep the existing hash navigation: #home, #about, #skills, #contact, and #/resume. Hash routes do not require server rewrites. The public directory contains the images, favicon, and resume.pdf copied into the build.
+
+For frontend development, run npm --prefix frontend run dev. The frontend sends contact requests directly to Supabase; it does not use the former demonstration API routes.

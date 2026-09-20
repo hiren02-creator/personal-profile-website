@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import './App.css'
 
@@ -227,6 +227,7 @@ function Website() {
     setSending(true)
     setContactStatus(null)
     try {
+      if (!supabase) throw new Error('Contact service is not configured')
       const { name, email, message } = values
       const { error } = await supabase
         .from('contact_messages')
@@ -287,7 +288,7 @@ function Website() {
                   <defs><path id="profileCirclePath" d="M 100, 100 m -86, 0 a 86,86 0 1,1 172,0 a 86,86 0 1,1 -172,0" /></defs>
                   <text textLength="526" lengthAdjust="spacing"><textPath href="#profileCirclePath" startOffset="1%">INVESTMENT • AI DEVELOPER • TECHNOLOGY • PERSONAL FINANCE • </textPath></text>
                 </svg>
-                <div className="profile-image"><img src="/images/profile.jpg" alt="Hiren Visodiya" width="480" height="480" fetchPriority="high" decoding="async" /></div>
+                <div className="profile-image"><img src={`${import.meta.env.BASE_URL}images/profile.jpg`} alt="Hiren Visodiya" width="480" height="480" fetchPriority="high" decoding="async" /></div>
                 <svg className="profile-sparkle" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2C16 12 12 16 2 16c10 0 14 4 14 14 0-10 4-14 14-14C20 16 16 12 16 2Z" /></svg>
                 <span className="profile-dots" aria-hidden="true" />
                 <svg className="profile-doodle" viewBox="0 0 44 24" aria-hidden="true"><path d="M3 18C10 3 17 3 19 13s8 10 12-2c2-6 6-8 10-7" /></svg>
@@ -423,6 +424,14 @@ function ResumeJourneyHeading() {
 }
 
 function ResumePage() {
+  useLayoutEffect(() => {
+    const scrollToTop = () => window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    scrollToTop()
+    // Reset again after the browser finishes the hash navigation.
+    const frame = window.requestAnimationFrame(scrollToTop)
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
+
   const [menuOpen, setMenuOpen] = useState(false)
   const [headerCompact, setHeaderCompact] = useState(
     () => typeof window !== 'undefined' && window.scrollY > 24,
