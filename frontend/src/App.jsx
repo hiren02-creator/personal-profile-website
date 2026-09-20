@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import './App.css'
 
@@ -16,29 +16,35 @@ function isResumeHash(hash) {
 
 const profile = {
   name: 'Hiren Visodiya',
-  role: 'AI Developer',
-  interest: 'Investment',
+  role: 'Investment',
+  interest: 'AI Development',
   website: 'Personal Profile Website',
 }
 
 const skills = [
-  'Python',
+  'JavaScript',
   'Node.js',
-  'Express.js',
-  'REST APIs',
+  'HTML',
+  'CSS',
   'Supabase',
   'PostgreSQL',
+  'Terminal & Command Line',
   'Git',
   'GitHub',
-  'AI APIs',
+  'React',
+  'Vite',
+  'REST APIs',
+  'Mutual Funds',
+  'ETFs & Index investing',
+  'Investment Concepts',
 ]
 
 const skillCategories = [
   { title: 'AI & Development', skills: ['Python', 'AI APIs'] },
-  { title: 'Backend', skills: ['Node.js', 'Express.js', 'REST APIs'] },
+  { title: 'Backend', skills: ['Node.js','REST APIs'] },
   { title: 'Frontend', skills: ['React', 'JavaScript', 'HTML', 'CSS', 'Vite'] },
   { title: 'Databases', skills: ['Supabase', 'PostgreSQL'] },
-  { title: 'Tools', skills: ['Git', 'GitHub'] },
+  { title: 'Tools', skills: ['Git', 'GitHub', 'Terminal & Command Line'] },
 ]
 
 function SkillCategories({ items }) {
@@ -51,7 +57,7 @@ function SkillCategories({ items }) {
     }))
     .filter((category) => category.skills.length)
   const otherSkills = items.filter((skill) => !knownSkills.has(skill))
-  if (otherSkills.length) groups.push({ title: 'More Capabilities', skills: otherSkills })
+  if (otherSkills.length) groups.push({ title: 'Investments', skills: otherSkills })
 
   return (
     <div className="skill-categories">
@@ -72,8 +78,8 @@ function SkillCategories({ items }) {
 
 const profileFields = [
   ['Name', 'name'],
-  ['Focus', 'interest'],
-  ['Interest', 'role'],
+  ['Focus', 'role'],
+  ['Interest', 'interest'],
   ['Website', 'website'],
 ]
 
