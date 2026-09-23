@@ -1,4 +1,5 @@
-﻿import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react'
+﻿import { memo, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from './supabase'
 import './App.css'
 
@@ -40,41 +41,298 @@ const skills = [
 ]
 
 const skillCategories = [
-  { title: 'AI & Development', skills: ['Python', 'AI APIs'] },
-  { title: 'Backend', skills: ['Node.js','REST APIs'] },
-  { title: 'Frontend', skills: ['React', 'JavaScript', 'HTML', 'CSS', 'Vite'] },
-  { title: 'Databases', skills: ['Supabase', 'PostgreSQL'] },
-  { title: 'Tools', skills: ['Git', 'GitHub', 'Terminal & Command Line'] },
+  { title: 'AI', tag: '01 / INTELLIGENCE', skills: ['Python', 'AI APIs'] },
+  { title: 'Frontend', tag: '02 / INTERFACE', skills: ['React', 'JavaScript', 'HTML', 'CSS', 'Vite'] },
+  { title: 'Backend', tag: '03 / SYSTEM', skills: ['Node.js', 'REST APIs', 'Supabase', 'PostgreSQL'] },
+  { title: 'Tools', tag: '04 / TOOLKIT', skills: ['Git', 'GitHub', 'Terminal & Command Line'] },
+  { title: 'Investment', tag: '05 / FINANCE', skills: ['Mutual Funds', 'ETFs & Index investing', 'Investment Concepts'] },
 ]
 
-function SkillCategories({ items }) {
-  if (!items.length) return <p className="resource-status">More skills will be added soon.</p>
-  const knownSkills = new Set(skillCategories.flatMap((category) => category.skills))
-  const groups = skillCategories
-    .map((category) => ({
-      ...category,
-      skills: category.skills.filter((skill) => items.includes(skill)),
-    }))
-    .filter((category) => category.skills.length)
-  const otherSkills = items.filter((skill) => !knownSkills.has(skill))
-  if (otherSkills.length) groups.push({ title: 'Investments', skills: otherSkills })
+const skillNodeShapes = {
+  React: 'circle',
+  HTML: 'square',
+  CSS: 'circle',
+  Vite: 'square',
+  'Node.js': 'square',
+  Supabase: 'square',
+  Git: 'circle',
+  GitHub: 'square',
+}
+const featuredSkills = new Set(['React', 'JavaScript', 'Node.js', 'Mutual Funds'])
+
+// Decorative motifs have no data meaning and never connect skill nodes.
+const SkillClusterAccent = memo(function SkillClusterAccent({ category }) {
+  const motifs = {
+    AI: <><path d="M4 14H20L28 6H42M54 14H66L74 6H90" /><rect x="43" y="3" width="10" height="14" rx="2" /><path d="M46 7H50M46 11H50" /><circle cx="4" cy="14" r="2" /><circle cx="90" cy="6" r="2" /></>,
+    Frontend: <><rect x="3" y="2" width="48" height="16" rx="3" /><path d="M3 7H51M18 7V18" /><rect x="59" y="3" width="14" height="14" rx="4" /><circle cx="85" cy="10" r="6" /></>,
+    Backend: <><rect x="3" y="3" width="24" height="14" rx="2" /><rect x="36" y="3" width="24" height="14" rx="2" /><rect x="69" y="3" width="24" height="14" rx="2" /><path d="M8 7H22M8 12H15M41 7H55M41 12H48M74 7H88M74 12H81" /></>,
+    Tools: <><path d="M5 5L11 10L5 15M16 15H27" /><rect x="40" y="4" width="12" height="12" rx="2" /><path d="M46 7V13M43 10H49M64 6H90M64 14H82" /></>,
+    Investment: <><path className="skill-accent-guides" d="M4 3V17H92M24 3V17M46 3V17M68 3V17M4 8H92" /><path className="skill-investment-chart" d="M12 12L28 7L44 11L60 5L76 9L90 4" /><path className="skill-investment-trace" pathLength="100" d="M12 12L28 7L44 11L60 5L76 9L90 4" /></>,
+  }
+
+  return (
+    <svg className="skill-cluster-accent" viewBox="0 0 96 20" fill="none" aria-hidden="true" focusable="false">
+      {motifs[category]}
+    </svg>
+  )
+})
+
+const skillConnections = {
+  AI: [['Python', 'AI APIs']],
+  Frontend: [['React', 'JavaScript'], ['HTML', 'CSS']],
+  Backend: [['Node.js', 'REST APIs'], ['Supabase', 'PostgreSQL']],
+  Tools: [['Git', 'GitHub']],
+  Investment: [['Mutual Funds', 'ETFs & Index investing'], ['ETFs & Index investing', 'Investment Concepts']],
+}
+
+const SkillConnections = memo(function SkillConnections({ category, skillsKey }) {
+  const svgRef = useRef(null)
+  const [paths, setPaths] = useState([])
+
+  useLayoutEffect(() => {
+    const area = svgRef.current.parentElement
+    const nodes = new Map(
+      [...area.querySelectorAll('[data-skill]')].map((node) => [node.dataset.skill, node]),
+    )
+    if (nodes.size < 2) return
+
+    function measure() {
+      // Layout coordinates stay stable while cards and nodes animate with transforms.
+      const bounds = { width: area.clientWidth, height: area.clientHeight }
+      const centers = new Map([...nodes].map(([name, node]) => {
+        let x = node.offsetWidth / 2
+        let y = node.offsetHeight / 2
+        for (let parent = node; parent && parent !== area; parent = parent.offsetParent) {
+          x += parent.offsetLeft
+          y += parent.offsetTop
+        }
+        return [name, { x, y }]
+      }))
+      const nextPaths = skillConnections[category].flatMap(([from, to]) => {
+        const start = centers.get(from)
+        const end = centers.get(to)
+        if (!start || !end) return []
+        const dx = end.x - start.x
+        const dy = end.y - start.y
+        // Keep the control points inside the node area at every wrap width.
+        const bend = Math.min(22, Math.hypot(dx, dy) * .2)
+        const horizontal = Math.abs(dx) >= Math.abs(dy)
+        const cx1 = Math.min(bounds.width - 2, Math.max(2, start.x + dx / 3 + (horizontal ? 0 : bend)))
+        const cx2 = Math.min(bounds.width - 2, Math.max(2, start.x + dx * 2 / 3 + (horizontal ? 0 : bend)))
+        const cy1 = Math.min(bounds.height - 2, Math.max(2, start.y + dy / 3 + (horizontal ? bend : 0)))
+        const cy2 = Math.min(bounds.height - 2, Math.max(2, start.y + dy * 2 / 3 + (horizontal ? bend : 0)))
+        return [`M ${start.x} ${start.y} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${end.x} ${end.y}`]
+      })
+      setPaths((previous) => previous.join('|') === nextPaths.join('|') ? previous : nextPaths)
+    }
+
+    measure()
+    // Resize observation covers wrapping, zoom, and font changes without a frame loop.
+    const observer = new ResizeObserver(measure)
+    observer.observe(area)
+    nodes.forEach((node) => observer.observe(node))
+    return () => observer.disconnect()
+  }, [category, skillsKey])
+
+  return (
+    <svg ref={svgRef} className="skill-connections" aria-hidden="true" focusable="false">
+      {paths.map((path, index) => <path key={index} d={path} />)}
+    </svg>
+  )
+})
+
+const skillDescriptions = {
+  JavaScript: 'I build interactive website behavior.',
+  'Node.js': 'I run server-side application logic.',
+  HTML: 'I structure accessible web content.',
+  CSS: 'I style responsive layouts.',
+  Supabase: 'I store and retrieve application data.',
+  PostgreSQL: 'I organize and query relational data.',
+  'Terminal & Command Line': 'I run development tools and project commands.',
+  Git: 'I track changes in my projects.',
+  GitHub: 'I host and manage my code repositories.',
+  React: 'I build reusable interface components.',
+  Vite: 'I develop and build frontend projects.',
+  'REST APIs': 'I connect applications to services.',
+  'Mutual Funds': 'I research pooled investment options.',
+  'ETFs & Index investing': 'I explore diversified index investing.',
+  'Investment Concepts': 'I study risk and diversification.',
+  Python: 'I write scripts for AI development.',
+  'AI APIs': 'I integrate AI features into applications.',
+}
+
+function SkillTooltip({ target, id, onDismiss, onEnter, onLeave }) {
+  const tooltipRef = useRef(null)
+  const updatePositionRef = useRef(null)
+  const [position, setPosition] = useState(null)
+
+  useLayoutEffect(() => {
+    function updatePosition() {
+      const tooltip = tooltipRef.current
+      const anchor = target.node.getBoundingClientRect()
+      const { width, height } = tooltip.getBoundingClientRect()
+      const gap = 8
+      const margin = 12
+      const viewport = window.visualViewport
+      const leftEdge = (viewport?.offsetLeft || 0) + margin
+      const topEdge = (viewport?.offsetTop || 0) + margin
+      const rightEdge = leftEdge + (viewport?.width || window.innerWidth) - margin * 2
+      const bottomEdge = topEdge + (viewport?.height || window.innerHeight) - margin * 2
+      const obstacles = [...document.querySelectorAll('#skills .skill-node, #skills h2, #skills h3, .site-header')]
+        .map((node) => node.getBoundingClientRect())
+      const candidates = [
+        { left: anchor.left + (anchor.width - width) / 2, top: anchor.top - height - gap },
+        { left: anchor.left + (anchor.width - width) / 2, top: anchor.bottom + gap },
+        { left: anchor.right + gap, top: anchor.top + (anchor.height - height) / 2 },
+        { left: anchor.left - width - gap, top: anchor.top + (anchor.height - height) / 2 },
+      ].map((candidate) => {
+        const left = Math.max(leftEdge, Math.min(candidate.left, rightEdge - width))
+        const top = Math.max(topEdge, Math.min(candidate.top, bottomEdge - height))
+        const overlap = obstacles.reduce((total, rect) => total +
+          Math.max(0, Math.min(left + width, rect.right) - Math.max(left, rect.left)) *
+          Math.max(0, Math.min(top + height, rect.bottom) - Math.max(top, rect.top)), 0)
+        return { left, top, overlap }
+      })
+      candidates.sort((a, b) => a.overlap - b.overlap)
+      setPosition({ left: candidates[0].left, top: candidates[0].top })
+    }
+    updatePositionRef.current = updatePosition
+    updatePosition()
+    return () => { updatePositionRef.current = null }
+  }, [target])
+
+  useEffect(() => {
+    let frame
+    function onScroll() {
+      if (document.activeElement !== target.node) { onDismiss(); return }
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        const rect = target.node.getBoundingClientRect()
+        if (rect.bottom <= 0 || rect.top >= window.innerHeight) onDismiss()
+        else updatePositionRef.current?.()
+      })
+    }
+    function dismissOnEscape(event) {
+      if (event.key === 'Escape') onDismiss()
+    }
+    function dismissOutside(event) {
+      if (!target.node.contains(event.target) && !tooltipRef.current?.contains(event.target)) onDismiss()
+    }
+    document.addEventListener('keydown', dismissOnEscape)
+    document.addEventListener('pointerdown', dismissOutside)
+    document.addEventListener('wheel', onDismiss, { passive: true })
+    document.addEventListener('touchmove', onDismiss, { passive: true })
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', onDismiss)
+    window.visualViewport?.addEventListener('resize', onDismiss)
+    window.visualViewport?.addEventListener('scroll', onScroll)
+    return () => {
+      document.removeEventListener('keydown', dismissOnEscape)
+      document.removeEventListener('pointerdown', dismissOutside)
+      document.removeEventListener('wheel', onDismiss)
+      document.removeEventListener('touchmove', onDismiss)
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', onScroll, true)
+      window.removeEventListener('resize', onDismiss)
+      window.visualViewport?.removeEventListener('resize', onDismiss)
+      window.visualViewport?.removeEventListener('scroll', onScroll)
+    }
+  }, [target, onDismiss])
+
+  return createPortal(
+    <div ref={tooltipRef} id={id} role="tooltip" className="skill-tooltip"
+      style={position || { visibility: 'hidden' }} onPointerEnter={onEnter} onPointerLeave={onLeave}>
+      <strong>{target.skill}</strong>
+      <p>{skillDescriptions[target.skill]}</p>
+      <span className="skill-tooltip-category">{target.category}</span>
+    </div>,
+    document.body,
+  )
+}
+
+const SkillCategories = memo(function SkillCategories({ items }) {
+  const [selectedSkills, setSelectedSkills] = useState(() => new Set())
+  const [tooltip, setTooltip] = useState(null)
+  const tooltipId = useId()
+  const tooltipTimer = useRef(null)
+  const dismissTooltip = useCallback(() => {
+    window.clearTimeout(tooltipTimer.current)
+    setTooltip(null)
+  }, [])
+  const keepTooltip = () => window.clearTimeout(tooltipTimer.current)
+  function showTooltip(node, skill, category) {
+    keepTooltip()
+    setTooltip((current) => current?.node === node ? current : { node, skill, category })
+  }
+  function leaveTooltip() {
+    keepTooltip()
+    tooltipTimer.current = window.setTimeout(() => {
+      setTooltip((current) => current?.node === document.activeElement ? current : null)
+    }, 120)
+  }
+  useEffect(() => () => window.clearTimeout(tooltipTimer.current), [])
+
+  function toggleSkill(skill) {
+    setSelectedSkills((previous) => {
+      const next = new Set(previous)
+      if (next.has(skill)) next.delete(skill)
+      else next.add(skill)
+      return next
+    })
+  }
+  const groups = skillCategories.map((category) => ({
+    ...category,
+    skills: category.skills.filter((skill) => items.includes(skill)),
+  }))
 
   return (
     <div className="skill-categories">
-      {groups.map((category, index) => (
-        <article className="skill-category" key={category.title}>
+      {groups.map((category) => (
+        <article className={`skill-category skill-category-${category.title.toLowerCase()}`} key={category.title} aria-labelledby={`skill-heading-${category.title.toLowerCase()}`}>
           <div className="skill-category-heading">
-            <span>{String(index + 1).padStart(2, '0')}</span>
-            <h3>{category.title}</h3>
+            <span className="skill-category-tag">{category.tag}</span>
+            <h3 id={`skill-heading-${category.title.toLowerCase()}`}>{category.title}</h3>
+            <SkillClusterAccent category={category.title} />
           </div>
-          <ul>
-            {category.skills.map((skill) => <li key={skill}>{skill}</li>)}
-          </ul>
+          <div className="skill-node-space">
+            <SkillConnections category={category.title} skillsKey={category.skills.join('|')} />
+            {category.skills.length > 0 && (
+              <ul role="list">
+                {category.skills.map((skill) => (
+                  <li key={skill}>
+                    <button
+                      type="button"
+                      className={`skill-node skill-node-${skillNodeShapes[skill] || 'pill'}${featuredSkills.has(skill) ? ' skill-node-featured' : ''}`}
+                      data-skill={skill}
+                      aria-describedby={tooltip?.skill === skill ? tooltipId : undefined}
+                      onPointerEnter={(event) => {
+                        if (event.pointerType !== 'touch') showTooltip(event.currentTarget, skill, category.title)
+                      }}
+                      onPointerLeave={leaveTooltip}
+                      onFocus={(event) => showTooltip(event.currentTarget, skill, category.title)}
+                      onBlur={dismissTooltip}
+                      onPointerUp={(event) => {
+                        if (event.pointerType === 'touch') {
+                          event.currentTarget.focus({ preventScroll: true })
+                          showTooltip(event.currentTarget, skill, category.title)
+                        }
+                      }}
+                      aria-pressed={selectedSkills.has(skill)}
+                      onClick={() => toggleSkill(skill)}
+                    >
+                      {skill}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </article>
       ))}
+      {tooltip && <SkillTooltip key={tooltip.skill} target={tooltip} id={tooltipId} onDismiss={dismissTooltip} onEnter={keepTooltip} onLeave={leaveTooltip} />}
     </div>
   )
-}
+})
 
 const profileFields = [
   ['Name', 'name'],
@@ -264,7 +522,120 @@ const AboutSection = memo(function AboutSection() {
     </section>
   )
 })
+function useSkillsReveal(sectionRef) {
+  useLayoutEffect(() => {
+    const section = sectionRef.current
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (preference.matches || !window.IntersectionObserver || !Element.prototype.animate) return
+
+    const groups = [
+      ['.section-heading', 320, 'translateY(8px)'],
+      ['.skill-category', 380, 'translateY(10px)'],
+      ['.skill-connections', 220, 'none'],
+      ['.skill-node', 260, 'translateY(4px) scale(0.97)'],
+    ]
+    const records = groups.flatMap(([selector, duration, transform], phase) =>
+      [...section.querySelectorAll(selector)].map((element) => ({
+        element, phase,
+        duration: element.classList.contains('skill-category-investment') ? 460 : duration,
+        transform: element.classList.contains('skill-category-investment') ? 'translateY(12px) scale(0.99)' : transform,
+        visible: false, revealed: false, timer: null, animation: null, end: 0,
+      })),
+    )
+    let stopped = false
+    const backgroundObserver = new IntersectionObserver(([entry]) => {
+      section.classList.toggle('skills-in-view', entry.isIntersecting)
+    })
+    backgroundObserver.observe(section)
+
+    function finish(record) {
+      if (record.revealed && !record.animation && record.timer === null) return
+      window.clearTimeout(record.timer)
+      record.timer = null
+      record.animation?.cancel()
+      record.animation = null
+      record.revealed = true
+      record.end = 0
+      record.element.classList.remove('skills-reveal-pending')
+      observer.unobserve(record.element)
+    }
+
+    function schedule() {
+      const now = performance.now()
+      records.forEach((record) => {
+        if (!record.visible || record.revealed || record.timer !== null) return
+        // Sequence only the content currently entering, so mobile never waits for offscreen cards.
+        const earlier = records.filter((other) => other.phase < record.phase && other.end > now)
+        const siblings = records.filter((other) => other !== record && other.phase === record.phase && other.end > now)
+        const stagger = record.phase === 1 ? 90 : record.phase === 3 ? 35 : 0
+        const start = Math.max(now, ...earlier.map((other) => other.end),
+          ...siblings.map((other) => other.end - other.duration + stagger))
+        record.end = start + record.duration
+        record.timer = window.setTimeout(() => {
+          record.timer = null
+          if (stopped || !record.visible) { record.end = 0; return }
+          record.revealed = true
+          observer.unobserve(record.element)
+          record.element.classList.remove('skills-reveal-pending')
+          record.animation = record.element.animate([
+            { opacity: 0, transform: record.transform },
+            { opacity: 1, transform: 'none' },
+          ], { duration: record.duration, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' })
+          record.animation.onfinish = () => { record.animation = null }
+        }, start - now)
+      })
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (stopped) return
+      entries.forEach(({ target, isIntersecting }) => {
+        const record = records.find((item) => item.element === target)
+        record.visible = isIntersecting
+        if (!isIntersecting && record.timer !== null) {
+          window.clearTimeout(record.timer)
+          record.timer = null
+          record.end = 0
+        }
+      })
+      schedule()
+    }, { threshold: 0, rootMargin: '0px 0px -16px 0px' })
+
+    function revealAll() {
+      stopped = true
+      records.forEach(finish)
+      observer.disconnect()
+      backgroundObserver.disconnect()
+      section.classList.remove('skills-in-view')
+    }
+    function onPreferenceChange(event) {
+      if (event.matches) revealAll()
+    }
+    function onInteraction(event) {
+      const card = event.target.closest('.skill-category')
+      if (!card) return
+      // Settle transforms before a focus/hover tooltip measures its anchor.
+      records.filter((record) => record.phase === 0 || record.element === card || card.contains(record.element)).forEach(finish)
+    }
+
+    records.forEach((record) => {
+      record.element.classList.add('skills-reveal-pending')
+      observer.observe(record.element)
+    })
+    preference.addEventListener('change', onPreferenceChange)
+    section.addEventListener('focusin', onInteraction, true)
+    section.addEventListener('pointerover', onInteraction, true)
+    return () => {
+      revealAll()
+      preference.removeEventListener('change', onPreferenceChange)
+      section.removeEventListener('focusin', onInteraction, true)
+      section.removeEventListener('pointerover', onInteraction, true)
+    }
+  }, [sectionRef])
+}
+
 function Website() {
+  const skillsRef = useRef(null)
+  useSkillsReveal(skillsRef)
   const [menuOpen, setMenuOpen] = useState(false)
   const [headerCompact, setHeaderCompact] = useState(
     () => typeof window !== 'undefined' && window.scrollY > 24,
@@ -440,10 +811,10 @@ function Website() {
 
         <AboutSection />
 
-        <section id="skills" className="section section-tinted screen-section">
+        <section ref={skillsRef} id="skills" className="section section-tinted screen-section" aria-labelledby="skills-heading">
           <div className="container">
             <div className="section-heading">
-              <div><p className="eyebrow">02 / Skills</p><h2>Technologies &amp; Capabilities</h2></div>
+              <div><p className="eyebrow">02 / Skills</p><h2 id="skills-heading">What I Know. What I Build With.</h2></div>
               <p className="skills-status"><span aria-hidden="true" />Always learning</p>
             </div>
             <SkillCategories items={skills} />
