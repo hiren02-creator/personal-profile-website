@@ -1,4 +1,4 @@
-﻿import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+﻿import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 import './App.css'
 
@@ -83,47 +83,187 @@ const profileFields = [
   ['Website', 'website'],
 ]
 
-function AboutSection() {
-  const sectionRef = useRef(null)
+const AboutSection = memo(function AboutSection() {
+  const aboutRef = useRef(null)
 
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  useLayoutEffect(() => {
+    const section = aboutRef.current
+    const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (motionPreference.matches || !window.IntersectionObserver || !Element.prototype.animate) return
+
+    const targets = [
+      section.querySelector('.about-statement'),
+      section.querySelector('.about-identity'),
+      section.querySelector('.about-ai'),
+      section.querySelector('.about-investment'),
+      section.querySelector('.about-journey'),
+    ]
+    const visible = new Set()
+    const revealed = new Set()
+    const timers = new Map()
+    const animations = new Map()
+    let nextStart = 0
+    let stopped = false
+
+    function reveal(target, immediate = false) {
+      window.clearTimeout(timers.get(target))
+      timers.delete(target)
+      if (immediate) {
+        animations.get(target)?.cancel()
+        animations.delete(target)
+      }
+      if (stopped || revealed.has(target)) return
+      revealed.add(target)
+      observer.unobserve(target)
+      target.classList.remove('about-reveal-pending')
+      if (immediate) return
+
+      const transform = target.classList.contains('about-ai')
+        ? 'translateX(-12px)'
+        : target.classList.contains('about-investment')
+          ? 'scale(0.975)'
+          : 'translateY(12px)'
+      const animation = target.animate([
+        { opacity: 0, transform },
+        { opacity: 1, transform: 'none' },
+      ], { duration: 420, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' })
+      animations.set(target, animation)
+      animation.onfinish = () => animations.delete(target)
+    }
+
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('about-entered')
-          observer.unobserve(entry.target)
+      if (stopped) return
+      entries.forEach(({ target, isIntersecting }) => {
+        if (isIntersecting) visible.add(target)
+        else {
+          visible.delete(target)
+          window.clearTimeout(timers.get(target))
+          timers.delete(target)
         }
       })
-    }, { threshold: 0.15 })
-    sectionRef.current.querySelectorAll('[data-about-reveal]').forEach((item) => observer.observe(item))
-    return () => observer.disconnect()
+      // DOM order keeps cards entering together in the storytelling sequence.
+      targets.forEach((target) => {
+        if (!visible.has(target) || revealed.has(target) || timers.has(target)) return
+        const now = performance.now()
+        const delay = Math.min(360, Math.max(0, nextStart - now))
+        nextStart = now + delay + 90
+        timers.set(target, window.setTimeout(() => {
+          if (visible.has(target)) reveal(target)
+        }, delay))
+      })
+    }, { threshold: 0, rootMargin: '0px 0px -24px 0px' })
+
+    function revealAll() {
+      stopped = true
+      visible.clear()
+      observer.disconnect()
+      timers.forEach((timer) => window.clearTimeout(timer))
+      timers.clear()
+      animations.forEach((animation) => animation.cancel())
+      animations.clear()
+      targets.forEach((target) => target.classList.remove('about-reveal-pending'))
+    }
+
+    function onMotionChange(event) {
+      if (event.matches) revealAll()
+    }
+
+    function onFocus(event) {
+      const target = targets.find((item) => item.contains(event.target))
+      if (target) reveal(target, true)
+    }
+
+    targets.forEach((target) => {
+      target.classList.add('about-reveal-pending')
+      observer.observe(target)
+    })
+    motionPreference.addEventListener('change', onMotionChange)
+    section.addEventListener('focusin', onFocus)
+    return () => {
+      revealAll()
+      motionPreference.removeEventListener('change', onMotionChange)
+      section.removeEventListener('focusin', onFocus)
+    }
   }, [])
+  function renderDetails(keys) {
+    return (
+      <dl className="profile-details">
+        {profileFields.filter(([, key]) => keys.includes(key)).map(([label, key]) => (
+          <div className="about-detail" key={key}>
+            <dt>{label}</dt>
+            <dd>{key === 'website' ? <a href="#home">{profile[key]} <span aria-hidden="true">↗</span></a> : profile[key]}</dd>
+          </div>
+        ))}
+      </dl>
+    )
+  }
 
   return (
-    <section ref={sectionRef} id="about" className="section screen-section" aria-labelledby="about-heading">
+    <section ref={aboutRef} id="about" className="section screen-section" aria-labelledby="about-heading">
       <div className="container about-layout">
-        <div className="about-statement" data-about-reveal>
+        <header className="about-statement">
           <p className="eyebrow">01 / About Me</p>
-          <h2 id="about-heading">Building<br /><em>technology</em><br />with purpose.</h2>
-          <p className="about-annotation">AI • Technology • Investment</p> 
-        </div>
-        <div className="about-copy" data-about-reveal>
-          <p className="lead-copy"><strong>I am interested in artificial intelligence, AI development, technology, and investment research.</strong></p>
-          <p className="about-body">I enjoy building useful digital projects and learning how technology and personal investment can work together.</p>
-        </div>
-        <dl className="profile-details" data-about-reveal>
-          {profileFields.map(([label, key], index) => (
-            <div className="about-detail" key={key} style={{ '--about-delay': `${index * 90}ms` }}>
-              <dt><span className="about-detail-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>{label}</dt>
-              <dd>{key === 'website' ? <a href="#home">{profile[key]} <span className="about-link-arrow" aria-hidden="true">↗</span></a> : profile[key]}</dd>
+          <h2 id="about-heading">I build. I learn. I invest. I evolve.</h2>
+          <p className="about-annotation">AI • Technology • Investment</p>
+        </header>
+        <div className="about-cards">
+          <article className="about-card about-identity" aria-labelledby="about-identity-heading">
+            <div className="about-portrait">
+              <img src={`${import.meta.env.BASE_URL}images/profile.jpg`} alt="Hiren Visodiya" width="768" height="1680" loading="lazy" decoding="async" />
             </div>
-          ))}
-        </dl>
+            <h3 id="about-identity-heading">Identity</h3>
+            <p className="about-identity-statement">Building <em>technology</em> with purpose.</p>
+            <p className="lead-copy"><strong>I am interested in artificial intelligence, AI development, technology, and investment research.</strong></p>
+            {renderDetails(['name', 'website'])}
+          </article>
+          <article className="about-card about-ai" aria-labelledby="about-ai-heading">
+            <div className="about-ai-heading">
+              <span className="about-ai-code" aria-hidden="true">{'{ }'}</span>
+              <h3 id="about-ai-heading">AI</h3>
+              <span className="about-ai-dot" aria-hidden="true" />
+            </div>
+            <svg className="about-ai-circuit" viewBox="0 0 240 64" fill="none" aria-hidden="true" focusable="false">
+              <path d="M12 32H76L104 12H164L192 32H228M76 32L104 52H164L192 32" />
+              <circle cx="12" cy="32" r="4" />
+              <circle cx="104" cy="12" r="4" />
+              <circle cx="164" cy="52" r="4" />
+              <circle cx="228" cy="32" r="4" />
+            </svg>
+            {renderDetails(['interest'])}
+          </article>
+          <article className="about-card about-investment" aria-labelledby="about-investment-heading">
+            <div className="about-investment-heading">
+              <span className="about-investment-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" focusable="false">
+                  <rect x="4" y="4" width="16" height="16" rx="3" />
+                  <path d="M4 10H20M10 10V20M14 14H17M14 17H17" />
+                </svg>
+              </span>
+              <h3 id="about-investment-heading">Investment</h3>
+            </div>
+            <svg className="about-investment-grid" viewBox="0 0 240 64" fill="none" aria-hidden="true" focusable="false">
+              <path className="about-investment-guides" d="M16 12H224M16 32H224M16 52H224M16 12V52M68 12V52M120 12V52M172 12V52M224 12V52" />
+              <path className="about-investment-axis" d="M16 8V56H228M64 56V60M116 56V60M168 56V60M220 56V60" />
+              <path className="about-investment-brackets" d="M106 22H100V42H106M134 22H140V42H134" />
+            </svg>
+            {renderDetails(['role'])}
+          </article>
+          <article className="about-card about-journey" aria-labelledby="about-journey-heading">
+            <h3 id="about-journey-heading">Journey</h3>
+            <ol className="about-journey-timeline" role="list">
+              <li>Building useful digital projects</li>
+              <li>Learning how technology and personal investment can work together</li>
+            </ol>
+          </article>
+        </div>
+        <div className="about-actions">
+          <a className="button button-primary" href="#skills">Explore My Skills <span aria-hidden="true">↓</span></a>
+          <a className="button button-secondary" href="#/resume">View My Resume <span aria-hidden="true">↗</span></a>
+        </div>
       </div>
     </section>
   )
-}
+})
 function Website() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [headerCompact, setHeaderCompact] = useState(
