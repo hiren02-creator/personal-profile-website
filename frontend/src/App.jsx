@@ -1,6 +1,8 @@
 ﻿import { memo, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { supabase } from './supabase'
+import { validateContactField } from './contactValidation'
+import { useContactReveal } from './useContactReveal'
 import './App.css'
 
 const navigation = ['Home', 'About', 'Skills', 'Contact', 'Resume']
@@ -636,6 +638,8 @@ function useSkillsReveal(sectionRef) {
 function Website() {
   const skillsRef = useRef(null)
   useSkillsReveal(skillsRef)
+  const contactRef = useRef(null)
+  useContactReveal(contactRef)
   const [menuOpen, setMenuOpen] = useState(false)
   const [headerCompact, setHeaderCompact] = useState(
     () => typeof window !== 'undefined' && window.scrollY > 24,
@@ -651,6 +655,24 @@ function Website() {
   const [sending, setSending] = useState(false)
   const [contactStatus, setContactStatus] = useState(null)
   const [form, setForm] = useState({ name: '', email: '', message: '' })
+  const [fieldFeedback, setFieldFeedback] = useState({})
+  const validationTimers = useRef({})
+
+  useEffect(() => () => {
+    Object.values(validationTimers.current).forEach(window.clearTimeout)
+  }, [])
+
+  function clearValidationTimers() {
+    Object.values(validationTimers.current).forEach(window.clearTimeout)
+    validationTimers.current = {}
+  }
+
+  function validateOnBlur(event) {
+    const { name, value } = event.target
+    window.clearTimeout(validationTimers.current[name])
+    setFieldFeedback((previous) => ({ ...previous, [name]: validateContactField(name, value) }))
+  }
+
 
   useEffect(() => {
     const hashSection = window.location.hash.slice(1)
@@ -722,16 +744,30 @@ function Website() {
   }, [])
 
   function updateField(event) {
-    setForm((previous) => ({ ...previous, [event.target.name]: event.target.value }))
+    const { name, value } = event.target
+    window.clearTimeout(validationTimers.current[name])
+    setForm((previous) => ({ ...previous, [name]: value }))
     setContactStatus(null)
+    // Clear stale feedback immediately; wait for a pause before checking again.
+    setFieldFeedback((previous) => previous[name] == null ? previous : { ...previous, [name]: null })
+    if (!event.nativeEvent.isComposing) {
+      validationTimers.current[name] = window.setTimeout(() => {
+        setFieldFeedback((previous) => ({ ...previous, [name]: validateContactField(name, value) }))
+      }, 800)
+    }
   }
 
   async function handleSubmit(event) {
     event.preventDefault()
     if (submitting.current) return
     const values = Object.fromEntries(Object.entries(form).map(([key, value]) => [key, value.trim()]))
-    if (Object.values(values).some((value) => !value)) {
-      setContactStatus({ success: false, message: 'Please complete every field before sending.' })
+    clearValidationTimers()
+    const feedback = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, validateContactField(key, value)]))
+    setFieldFeedback(feedback)
+    const firstInvalid = Object.keys(feedback).find((key) => feedback[key])
+    if (firstInvalid) {
+      setContactStatus(null)
+      event.currentTarget.elements.namedItem(firstInvalid)?.focus()
       return
     }
     submitting.current = true
@@ -746,6 +782,8 @@ function Website() {
       if (error) throw error
       setContactStatus({ success: true, message: 'Message sent successfully!' })
       setForm({ name: '', email: '', message: '' })
+      clearValidationTimers()
+      setFieldFeedback({})
     } catch (error) {
       console.error('Supabase contact submission failed:', error)
       setContactStatus({ success: false, message: 'Something went wrong. Please try again.' })
@@ -821,38 +859,68 @@ function Website() {
           </div>
         </section>
 
-        <section id="contact" className="section screen-section">
-          <div className="container contact-layout">
-            <div className="contact-information">
-              <p className="eyebrow">05 / Contact</p><h2>Let&apos;s Connect.</h2>
-              <p>Have an idea, a question, or a shared interest? Feel free to connect about AI development, technology, and investment research.</p>
-              <div className="contact-options" aria-label="Contact details">
-                <a className="contact-card" href="mailto:hirenwork62@gmail.com">
-                  <span className="contact-card-copy"><span className="contact-card-label">Email</span><strong>hirenwork62@gmail.com</strong></span>
-                  <span className="contact-card-arrow" aria-hidden="true">↗</span>
-                </a>
-                <a className="contact-card" href="https://www.linkedin.com/in/hiren-visodiya-416141208/" target="_blank" rel="noopener noreferrer">
-                  <span className="contact-card-copy"><span className="contact-card-label">LinkedIn</span><strong>hiren-visodiya</strong></span>
-                  <span className="contact-card-arrow" aria-hidden="true">↗</span>
-                </a>
-                <a className="contact-card" href="https://github.com/hiren02-creator" target="_blank" rel="noopener noreferrer">
-                  <span className="contact-card-copy"><span className="contact-card-label">GitHub</span><strong>hiren02-creator</strong></span>
-                  <span className="contact-card-arrow" aria-hidden="true">↗</span>
-                </a>
+        <section ref={contactRef} id="contact" className="section screen-section">
+          <div className="container">
+            <header className="contact-heading">
+              <p className="eyebrow">05 / Contact</p><h2>Let’s Talk</h2>
+              <p>Ideas, opportunities, collaborations — my inbox is open.</p>
+            </header>
+            <div className="contact-layout">
+              <form className="contact-form" onSubmit={handleSubmit} aria-busy={sending} noValidate>
+                <div className="form-heading"><span>Send a message</span><span aria-hidden="true">↗</span></div>
+                <div className="form-row">
+                  <div className="contact-field-group" data-validation={fieldFeedback.name == null ? undefined : fieldFeedback.name ? 'error' : 'valid'}>
+                    <label className="contact-field" htmlFor="contact-name"><input id="contact-name" name="name" autoComplete="name" placeholder=" " value={form.name} onChange={updateField} onBlur={validateOnBlur} onCompositionEnd={updateField} aria-invalid={Boolean(fieldFeedback.name)} aria-describedby="contact-name-feedback" maxLength={120} disabled={sending} required /><span className="contact-field-label">Your name</span></label>
+                    <p className="contact-field-feedback" id="contact-name-feedback" aria-live="polite" aria-atomic="true">{fieldFeedback.name == null ? '' : fieldFeedback.name || 'Looks good.'}</p>
+                  </div>
+                  <div className="contact-field-group" data-validation={fieldFeedback.email == null ? undefined : fieldFeedback.email ? 'error' : 'valid'}>
+                    <label className="contact-field" htmlFor="contact-email"><input id="contact-email" name="email" type="email" autoComplete="email" placeholder=" " value={form.email} onChange={updateField} onBlur={validateOnBlur} onCompositionEnd={updateField} aria-invalid={Boolean(fieldFeedback.email)} aria-describedby="contact-email-feedback" maxLength={254} disabled={sending} required /><span className="contact-field-label">Email address</span></label>
+                    <p className="contact-field-feedback" id="contact-email-feedback" aria-live="polite" aria-atomic="true">{fieldFeedback.email == null ? '' : fieldFeedback.email || 'Looks good.'}</p>
+                  </div>
+                </div>
+                <div className="contact-field-group" data-validation={fieldFeedback.message == null ? undefined : fieldFeedback.message ? 'error' : 'valid'}>
+                  <label className="contact-field" htmlFor="contact-message"><textarea id="contact-message" name="message" placeholder=" " rows={5} value={form.message} onChange={updateField} onBlur={validateOnBlur} onCompositionEnd={updateField} aria-invalid={Boolean(fieldFeedback.message)} aria-describedby="contact-message-feedback" maxLength={5000} disabled={sending} required /><span className="contact-field-label">Your message</span></label>
+                  <p className="contact-field-feedback" id="contact-message-feedback" aria-live="polite" aria-atomic="true">{fieldFeedback.message == null ? '' : fieldFeedback.message || 'Looks good.'}</p>
+                </div>
+                <button
+                  className="button button-primary contact-submit"
+                  type="submit"
+                  disabled={sending}
+                  data-state={sending ? 'sending' : contactStatus?.success ? 'sent' : 'idle'}
+                  aria-label={sending ? 'Sending...' : contactStatus?.success ? 'Sent ✓' : 'Send Message'}
+                  aria-describedby="contact-submit-feedback"
+                >
+                  <span className="contact-submit-label contact-submit-idle" aria-hidden="true">Send Message</span>
+                  <span className="contact-submit-label contact-submit-sending" aria-hidden="true">Sending...</span>
+                  <span className="contact-submit-label contact-submit-sent" aria-hidden="true">Sent ✓</span>
+                </button>
+                <div id="contact-submit-feedback" className="contact-submit-feedback" role="status" aria-live="polite" aria-atomic="true">{contactStatus && <p className={`contact-status ${contactStatus.success ? 'success' : 'error'}`}>{contactStatus.message}</p>}</div>
+                <p className="contact-form-note">Let&apos;s build something meaningful.</p>
+              </form>
+              <a className="contact-card contact-email" href="mailto:hirenwork62@gmail.com">
+                <span className="contact-card-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" focusable="false"><rect x="3" y="5" width="18" height="14" rx="3" /><path d="m4 7 8 6 8-6" /></svg>
+                </span>
+                <span className="contact-card-copy"><span className="contact-card-label">Email</span><strong>hirenwork62@gmail.com</strong></span>
+                <span className="contact-card-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a className="contact-card contact-linkedin" href="https://www.linkedin.com/in/hiren-visodiya-416141208/" target="_blank" rel="noopener noreferrer">
+                <span className="contact-card-icon contact-linkedin-mark" aria-hidden="true">in</span>
+                <span className="contact-card-copy"><span className="contact-card-label">LinkedIn</span><strong>hiren-visodiya</strong></span>
+                <span className="contact-card-arrow" aria-hidden="true">↗</span>
+              </a>
+              <a className="contact-card contact-github" href="https://github.com/hiren02-creator" target="_blank" rel="noopener noreferrer">
+                <span className="contact-card-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" focusable="false"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 16" /></svg>
+                </span>
+                <span className="contact-card-copy"><span className="contact-card-label">GitHub</span><strong>hiren02-creator</strong></span>
+                <span className="contact-card-arrow" aria-hidden="true">↗</span>
+              </a>
+              <div className="contact-card contact-availability" tabIndex={0}>
+                <span className="contact-card-icon" aria-hidden="true"><span className="contact-availability-dot" /></span>
+                <span className="contact-card-copy"><span className="contact-card-label">Status</span><strong>Open to conversations</strong></span>
               </div>
-              <p className="contact-availability"><span aria-hidden="true">●</span> Available for new conversations</p>
             </div>
-            <form className="contact-form" onSubmit={handleSubmit} aria-busy={sending}>
-              <div className="form-heading"><span>Send a message</span><span aria-hidden="true">↗</span></div>
-              <div className="form-row">
-                <label htmlFor="contact-name">Your name<input id="contact-name" name="name" autoComplete="name" placeholder="Full name" value={form.name} onChange={updateField} maxLength={120} disabled={sending} required /></label>
-                <label htmlFor="contact-email">Email address<input id="contact-email" name="email" type="email" autoComplete="email" placeholder="you@example.com" value={form.email} onChange={updateField} maxLength={254} disabled={sending} required /></label>
-              </div>
-              <label htmlFor="contact-message">Your message<textarea id="contact-message" name="message" placeholder="Tell me what’s on your mind…" rows={5} value={form.message} onChange={updateField} maxLength={5000} disabled={sending} required /></label>
-              <button className="button button-primary" type="submit" disabled={sending}>{sending ? 'Sending...' : 'Send message'} <span aria-hidden="true">↗</span></button>
-              <div aria-live="polite" aria-atomic="true">{contactStatus && <p className={`contact-status ${contactStatus.success ? 'success' : 'error'}`}>{contactStatus.message}</p>}</div>
-              <p className="contact-form-note">Let&apos;s build something meaningful.</p>
-            </form>
           </div>
         </section>
       </main>
