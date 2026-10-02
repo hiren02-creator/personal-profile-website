@@ -17,6 +17,45 @@ function isResumeHash(hash) {
   return hash === '#/resume' || hash.startsWith('#/resume/')
 }
 
+function useNavigationScroll() {
+  const pendingScroll = useRef(null)
+  useEffect(() => () => pendingScroll.current?.(), [])
+
+  return useCallback((sectionId) => {
+    pendingScroll.current?.()
+    const section = document.getElementById(sectionId)
+    if (!section) return
+    const atTop = sectionId === 'home' || sectionId === 'resume-journey'
+    const interruptEvents = ['wheel', 'touchstart', 'pointerdown', 'keydown']
+    let timer
+
+    function cancel() {
+      window.clearTimeout(timer)
+      window.removeEventListener('scroll', onScroll)
+      interruptEvents.forEach((type) => window.removeEventListener(type, cancel))
+      pendingScroll.current = null
+    }
+    function scroll(behavior) {
+      if (atTop) window.scrollTo({ top: 0, left: 0, behavior })
+      else section.scrollIntoView({ behavior, block: 'start' })
+    }
+    function onScroll() {
+      window.clearTimeout(timer)
+      // Let the existing header transition settle before correcting alignment.
+      timer = window.setTimeout(() => {
+        cancel()
+        if (section.isConnected) scroll('instant')
+      }, 300)
+    }
+
+    pendingScroll.current = cancel
+    window.addEventListener('scroll', onScroll, { passive: true })
+    interruptEvents.forEach((type) => window.addEventListener(type, cancel, { passive: true }))
+    scroll('smooth')
+    onScroll()
+  }, [])
+}
+
 const profile = {
   name: 'Hiren Visodiya',
   role: 'Investment',
@@ -636,6 +675,7 @@ function useSkillsReveal(sectionRef) {
 }
 
 function Website() {
+  const scrollToSection = useNavigationScroll()
   const skillsRef = useRef(null)
   useSkillsReveal(skillsRef)
   const contactRef = useRef(null)
@@ -681,7 +721,7 @@ function Website() {
     let frame
     function scrollToHashSection() {
       frame = window.requestAnimationFrame(() => {
-        document.getElementById(hashSection)?.scrollIntoView()
+        scrollToSection(hashSection)
       })
     }
 
@@ -692,7 +732,7 @@ function Website() {
       window.removeEventListener('load', scrollToHashSection)
       window.cancelAnimationFrame(frame)
     }
-  }, [])
+  }, [scrollToSection])
 
   useEffect(() => {
     function updateHeaderState() {
@@ -813,8 +853,25 @@ function Website() {
           <nav id="primary-navigation" className={`site-nav ${menuOpen ? 'is-open' : ''}`} aria-label="Primary navigation">
             {navigation.map((item) => {
               const sectionId = item.toLowerCase()
-              return <a key={item} className={activeSection === sectionId ? 'active' : ''} href={navigationHref(item)} aria-current={activeSection === sectionId ? 'location' : undefined} onClick={() => {
+              return <a key={item} className={activeSection === sectionId ? 'active' : ''} href={navigationHref(item)} aria-current={activeSection === sectionId ? 'location' : undefined} onClick={(event) => {
                 setMenuOpen(false)
+                if (item === 'Home') {
+                  event.preventDefault()
+                  if (window.location.hash !== '#home') window.history.pushState(null, '', '#home')
+                  scrollToSection('home')
+                } else if (item === 'About') {
+                  event.preventDefault()
+                  if (window.location.hash !== '#about') window.history.pushState(null, '', '#about')
+                  scrollToSection('about')
+                } else if (item === 'Skills') {
+                  event.preventDefault()
+                  if (window.location.hash !== '#skills') window.history.pushState(null, '', '#skills')
+                  scrollToSection('skills')
+                } else if (item === 'Contact') {
+                  event.preventDefault()
+                  if (window.location.hash !== '#contact') window.history.pushState(null, '', '#contact')
+                  scrollToSection('contact')
+                }
               }}>{item}</a>
             })}
           </nav>
@@ -1083,6 +1140,7 @@ function ResumeJourneyHeading() {
 }
 
 function ResumePage() {
+  const scrollToSection = useNavigationScroll()
   useLayoutEffect(() => {
     const scrollToTop = () => window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
     scrollToTop()
@@ -1142,7 +1200,13 @@ function ResumePage() {
             <span className={`hamburger ${menuOpen ? 'is-open' : ''}`} aria-hidden="true"><span /><span /></span>
           </button>
           <nav id="resume-primary-navigation" className={`site-nav ${menuOpen ? 'is-open' : ''}`} aria-label="Primary navigation">
-            {navigation.map((item) => <a key={item} className={item === 'Resume' ? 'active' : ''} href={navigationHref(item)} aria-current={item === 'Resume' ? 'page' : undefined} onClick={() => setMenuOpen(false)}>{item}</a>)}
+            {navigation.map((item) => <a key={item} className={item === 'Resume' ? 'active' : ''} href={navigationHref(item)} aria-current={item === 'Resume' ? 'page' : undefined} onClick={(event) => {
+              setMenuOpen(false)
+              if (item === 'Resume') {
+                event.preventDefault()
+                scrollToSection('resume-journey')
+              }
+            }}>{item}</a>)}
           </nav>
         </div>
       </header>
