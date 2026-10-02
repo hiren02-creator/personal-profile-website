@@ -929,75 +929,155 @@ function Website() {
   )
 }
 
-const educationTimelineEntries = [
-  { period: '2026–Present', title: 'Instructor', organization: 'Deaf Enabled Foundation', location: 'Ahmedabad, Gujarat' },
-  { period: '2025–Present', university: 'Amity University', location: 'Noida, Uttar Pradesh' },
-  { period: '2025–2026', title: 'Internship', organization: 'Deaf Enabled Foundation', location: 'Hyderabad, Telangana' },
-  { period: '2022–2025', title: 'Deaf Enabled Foundation', location: 'Hyderabad, Telangana' },
-  { period: '2019–2022', institution: 'K.L Institute for The DEAF', location: 'Bhavnagar, Gujarat'},
-  { period: '2008–2019', institution: 'Mata Lachmin Rotary Institute For Deaf', location: 'Kutch, Gujarat'},
+const resumeTimelineEntries = [
+  { type: 'education', period: '2008–2019', institution: 'Mata Lachmin Rotary Institute For Deaf', location: 'Kutch, Gujarat'},
+  { type: 'education', period: '2019–2022', institution: 'K.L Institute for The DEAF', location: 'Bhavnagar, Gujarat'},
+  { type: 'education', period: '2022–2025', title: 'Deaf Enabled Foundation', location: 'Hyderabad, Telangana' },
+  { type: 'experience', period: '2025–2026', title: 'Internship', organization: 'Deaf Enabled Foundation', location: 'Hyderabad, Telangana' },
+  { type: 'education', period: '2025–Present', university: 'Amity University', location: 'Noida, Uttar Pradesh' },
+  { type: 'experience', period: '2026–Present', title: 'Instructor', organization: 'Deaf Enabled Foundation', location: 'Ahmedabad, Gujarat' },
 ]
 
-function ResumeTimelineItem({ entry }) {
-  const itemRef = useRef(null)
-  const [isVisible, setIsVisible] = useState(false)
-
+function useResumeCardTilt(cardRef) {
   useEffect(() => {
-    const item = itemRef.current
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setIsVisible(true)
-        observer.disconnect()
-      }
-    }, { threshold: 0.25 })
+    const card = cardRef.current
+    const preference = window.matchMedia('(min-width: 901px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)')
+    let frame = null
+    let latestPointer = null
 
-    observer.observe(item)
-    return () => observer.disconnect()
-  }, [])
+    function reset() {
+      window.cancelAnimationFrame(frame)
+      frame = null
+      latestPointer = null
+      card.style.removeProperty('--resume-tilt-x')
+      card.style.removeProperty('--resume-tilt-y')
+    }
+
+    function move(event) {
+      if (event.pointerType !== 'mouse' || !preference.matches) return
+      latestPointer = { x: event.clientX, y: event.clientY }
+      if (frame !== null) return
+      frame = window.requestAnimationFrame(() => {
+        frame = null
+        // Measure the untransformed row so the tilt cannot feed back into its coordinates.
+        const row = card.parentElement.getBoundingClientRect()
+        const x = (latestPointer.x - row.left - card.offsetLeft) / card.offsetWidth
+        const y = (latestPointer.y - row.top - card.offsetTop) / card.offsetHeight
+        const clamp = (value) => Math.max(-1, Math.min(1, value))
+        card.style.setProperty('--resume-tilt-x', `${-clamp(y * 2 - 1) * 1.5}deg`)
+        card.style.setProperty('--resume-tilt-y', `${clamp(x * 2 - 1) * 1.5}deg`)
+      })
+    }
+
+    function syncPreference() {
+      reset()
+      card.removeEventListener('pointermove', move)
+      if (preference.matches) card.addEventListener('pointermove', move)
+    }
+
+    syncPreference()
+    preference.addEventListener('change', syncPreference)
+    card.addEventListener('pointerleave', reset)
+    card.addEventListener('pointercancel', reset)
+    window.addEventListener('blur', reset)
+    return () => {
+      reset()
+      preference.removeEventListener('change', syncPreference)
+      card.removeEventListener('pointermove', move)
+      card.removeEventListener('pointerleave', reset)
+      card.removeEventListener('pointercancel', reset)
+      window.removeEventListener('blur', reset)
+    }
+  }, [cardRef])
+}
+
+function ResumeTimelineItem({ entry }) {
+  const cardRef = useRef(null)
+  useResumeCardTilt(cardRef)
+  const isEducation = entry.type === 'education'
+  const qualification = entry.degree || entry.course
 
   return (
-    <li ref={itemRef} className={isVisible ? 'is-visible' : ''}>
-      <span className="resume-timeline-dot" aria-hidden="true" />
-      <div className="resume-timeline-card">
-        <time>{entry.period}</time>
-        <h3>{entry.title || entry.university || entry.institution}</h3>
-        {entry.organization && <p>{entry.organization}</p>}
-        {entry.location && <p>{entry.location}</p>}
+    <li>
+      <span className="resume-timeline-dot" data-type={entry.type} aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" focusable="false">
+          {isEducation ? (
+            <>
+              <path d="M2 9L12 4L22 9L12 14Z" />
+              <path d="M6 11V16C9 19 15 19 18 16V11M22 9V16" />
+            </>
+          ) : (
+            <>
+              <rect x="3" y="7" width="18" height="14" rx="2" />
+              <path d="M8 7V5A2 2 0 0 1 10 3H14A2 2 0 0 1 16 5V7M3 12C8 15 16 15 21 12M12 12V16" />
+            </>
+          )}
+        </svg>
+      </span>
+      <span className="resume-timeline-year" aria-hidden="true">{entry.period.slice(0, 4)}</span>
+      <div ref={cardRef} className="resume-timeline-card" data-type={entry.type}>
+        <div className="resume-card-meta">
+          <span className="resume-card-type">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+              {isEducation ? (
+                <>
+                  <path d="M2 9L12 4L22 9L12 14Z" />
+                  <path d="M6 11V16C9 19 15 19 18 16V11M22 9V16" />
+                </>
+              ) : (
+                <>
+                  <rect x="3" y="7" width="18" height="14" rx="2" />
+                  <path d="M8 7V5A2 2 0 0 1 10 3H14A2 2 0 0 1 16 5V7M3 12C8 15 16 15 21 12M12 12V16" />
+                </>
+              )}
+            </svg>
+            {isEducation ? 'Education' : 'Experience'}
+          </span>
+          <time aria-label={`${isEducation ? 'Study' : 'Work'} period: ${entry.period}`}>{entry.period}</time>
+        </div>
+        <h3>{isEducation ? entry.institution || entry.university || entry.title : entry.title}</h3>
+        {isEducation && qualification && <p className="resume-card-detail">{qualification}</p>}
+        {entry.organization && <p className="resume-card-detail">{entry.organization}</p>}
+        {entry.location && <p className="resume-card-location">{entry.location}</p>}
+        {entry.description && <p>{entry.description}</p>}
       </div>
     </li>
   )
 }
 
 function ResumeTimeline({ entries }) {
+  const timelineRef = useRef(null)
+
+  useEffect(() => {
+    if (!window.IntersectionObserver) return
+    const nodes = [...timelineRef.current.querySelectorAll('.resume-timeline-dot')]
+    // A single observer updates only node styles, without scroll handlers or rerenders.
+    const observer = new IntersectionObserver((changes) => {
+      changes.forEach(({ target, isIntersecting, intersectionRatio }) => {
+        target.classList.toggle('is-active', isIntersecting && intersectionRatio >= 0.5)
+      })
+    }, { rootMargin: '-100px 0px -48px 0px', threshold: [0, 0.5] })
+    nodes.forEach((node) => observer.observe(node))
+    return () => {
+      observer.disconnect()
+      nodes.forEach((node) => node.classList.remove('is-active'))
+    }
+  }, [entries])
+
   return (
-    <ol className="resume-timeline">
+    <ol ref={timelineRef} className="resume-timeline" role="list" aria-label="Education and experience, oldest to newest">
       {entries.map((entry) => (
-        <ResumeTimelineItem key={`${entry.period}-${entry.title}`} entry={entry} />
+        <ResumeTimelineItem key={`${entry.period}-${entry.title || entry.university || entry.institution}`} entry={entry} />
       ))}
     </ol>
   )
 }
 
 function ResumeJourneyHeading() {
-  const headingRef = useRef(null)
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setIsVisible(true)
-        observer.disconnect()
-      }
-    }, { threshold: 0.25 })
-
-    observer.observe(headingRef.current)
-    return () => observer.disconnect()
-  }, [])
-
   return (
-    <header ref={headingRef} className={`resume-journey-intro${isVisible ? ' is-visible' : ''}`}>
+    <header className="resume-journey-intro">
       <p className="resume-journey-label">MY JOURNEY</p>
-      <h2 id="resume-journey-heading">The Journey <span>So Far.</span></h2>
+      <h1 id="resume-journey-heading">The Journey <span>So Far</span></h1>
     </header>
   )
 }
@@ -1043,7 +1123,12 @@ function ResumePage() {
 
   return (
     <>
-      <a className="skip-link" href="#resume-content">Skip to content</a>
+      <a className="skip-link" href="#resume-content" onClick={(event) => {
+        event.preventDefault()
+        const main = document.getElementById('resume-content')
+        main?.focus({ preventScroll: true })
+        main?.scrollIntoView({ behavior: 'instant', block: 'start' })
+      }}>Skip to content</a>
       <header ref={headerRef} className={`site-header ${headerCompact ? 'is-scrolled' : ''}`} onKeyDown={(event) => {
         if (event.key === 'Escape' && menuOpen) {
           setMenuOpen(false)
@@ -1063,25 +1148,30 @@ function ResumePage() {
       </header>
 
       <main id="resume-content" tabIndex={-1}>
+        <section id="resume-journey" className="section" aria-labelledby="resume-journey-heading">
+          <div className="container">
+            <ResumeJourneyHeading />
+            <ResumeTimeline entries={resumeTimelineEntries} />
+          </div>
+        </section>
+
         <section id="resume-header" className="section" aria-labelledby="resume-heading">
           <div className="container">
-            <header><h1 id="resume-heading">Resume</h1></header>
+            <header><h2 id="resume-heading">Resume</h2></header>
             <div className="resume-document">
               <object className="resume-document-preview" data={`${import.meta.env.BASE_URL}resume.pdf#view=FitH`} type="application/pdf" aria-label="Resume PDF preview">
                 <p>Your browser cannot display this PDF inline. <a href={`${import.meta.env.BASE_URL}resume.pdf`} target="_blank" rel="noopener noreferrer">View Resume</a> to read it in a new tab.</p>
               </object>
               <div className="resume-document-actions">
                 <a className="button button-secondary" href={`${import.meta.env.BASE_URL}resume.pdf`} target="_blank" rel="noopener noreferrer">View Resume</a>
-                <a className="button button-primary" href={`${import.meta.env.BASE_URL}resume.pdf`} download="Simple Professional CV Resume.pdf">Download Resume</a>
+                <a className="button button-primary resume-download" href={`${import.meta.env.BASE_URL}resume.pdf`} download="Simple Professional CV Resume.pdf">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+                    <path d="M12 3V15M7 10L12 15L17 10M4 16V20A1 1 0 0 0 5 21H19A1 1 0 0 0 20 20V16" />
+                  </svg>
+                  <span>Download Resume</span>
+                </a>
               </div>
             </div>
-          </div>
-        </section>
-
-        <section id="resume-journey" className="section" aria-labelledby="resume-journey-heading">
-          <div className="container">
-            <ResumeJourneyHeading />
-            <ResumeTimeline entries={educationTimelineEntries} />
           </div>
         </section>
       </main>
